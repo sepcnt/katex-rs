@@ -39,7 +39,7 @@
 
   <script type="module">
     // ESM init: load WASM and shim, then render based on URL query.
-    import initWasm, * as wasm from "./pkg/katex_rs.js";
+    import initWasm, * as wasm from "./pkg/katex.js";
     import { createShim } from "./katex-shim.js";
 
     function parseMacrosFromSearch(search) {
@@ -116,6 +116,7 @@
 
       const output = params.get("output");
       if (output) opts.output = output;
+      else opts.output = "html"; // Default to HTML-only for screenshot compatibility
 
       // macros
       const macros = parseMacrosFromSearch(search);
@@ -218,6 +219,7 @@
       if ("strict" in o) opts.strict = o.strict;
       if ("trust" in o) opts.trust = o.trust;
       if ("output" in o) opts.output = o.output;
+      else opts.output = "html"; // Default to HTML-only for screenshot compatibility
       if (o.macros) opts.macros = o.macros;
 
       window.__ready = false;

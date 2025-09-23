@@ -499,30 +499,50 @@ pub fn get_v_list_children_and_depth(
             position_data,
             children: vlist_children,
         } => {
-            let first_child = &vlist_children[0];
-            if let VListChild::Elem(elem) = first_child {
-                let depth = -elem.elem.depth() - position_data;
-                Ok(VListChildrenAndDepth {
-                    children: vlist_children,
-                    depth,
-                })
+            // Find the first Elem child to calculate depth
+            let first_elem = vlist_children.iter().find_map(|child| {
+                if let VListChild::Elem(elem) = child {
+                    Some(elem)
+                } else {
+                    None
+                }
+            });
+
+            let depth = if let Some(elem) = first_elem {
+                -elem.elem.depth() - position_data
             } else {
-                Err(ParseError::new("First child must have type 'elem'"))
-            }
+                // No Elem children found, use default depth
+                -position_data
+            };
+
+            Ok(VListChildrenAndDepth {
+                children: vlist_children,
+                depth,
+            })
         }
         VListParam::FirstBaseline {
             children: vlist_children,
         } => {
-            let first_child = &vlist_children[0];
-            if let VListChild::Elem(elem) = first_child {
-                let depth = -elem.elem.depth();
-                Ok(VListChildrenAndDepth {
-                    children: vlist_children,
-                    depth,
-                })
+            // Find the first Elem child to calculate depth
+            let first_elem = vlist_children.iter().find_map(|child| {
+                if let VListChild::Elem(elem) = child {
+                    Some(elem)
+                } else {
+                    None
+                }
+            });
+
+            let depth = if let Some(elem) = first_elem {
+                -elem.elem.depth()
             } else {
-                Err(ParseError::new("First child must have type 'elem'"))
-            }
+                // No Elem children found, use default depth of 0
+                0.0
+            };
+            
+            Ok(VListChildrenAndDepth {
+                children: vlist_children,
+                depth,
+            })
         }
     }
 }

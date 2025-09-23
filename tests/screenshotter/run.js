@@ -79,36 +79,18 @@ function fileExists(p) {
 
 function ensureWasmBuiltSync(force = false) {
   const outDir = path.join("tests", "screenshotter", "pkg");
-  const outJs = path.join(ROOT, outDir, "katex_rs.js");
-  if (!force && fileExists(outJs)) {
-    console.log(`[build] Using existing ${outJs}`);
-    return;
-  }
   console.log(`[build] Building WASM artifacts into ${outDir} ...`);
   // Try wasm-pack first
   try {
     runCmd("wasm-pack", ["--version"], { stdio: "ignore" });
     // Use the proper flag to pass features through wasm-pack
-    runCmd("wasm-pack", ["build", "--features", "wasm", "--target", "web", "--out-dir", outDir, "--release"]);
+    runCmd("wasm-pack", ["build", "--target", "web", "--no-opt"]);
     console.log("[build] wasm-pack build done");
+    // Copy the ./pkg dir to current dir
+    fs.cpSync(path.join(process.cwd(),"pkg"), path.join(__dirname,"pkg"), { recursive: true, force: true });
     return;
   } catch (e) {
-    console.warn(`[build] wasm-pack unavailable or failed: ${e && e.message ? e.message : e}`);
-  }
-  // Fallback: cargo + wasm-bindgen
-  try {
-    runCmd("cargo", ["build", "-F", "wasm", "--target", "wasm32-unknown-unknown", "--release"]);
-    const tgtDir = path.join(ROOT, "target", "wasm32-unknown-unknown", "release");
-    const wasmFiles = fs.readdirSync(tgtDir).filter(f => f.endsWith(".wasm"));
-    if (!wasmFiles.length) throw new Error("no .wasm built under target/wasm32-unknown-unknown/release");
-    // Prefer crate-named wasm if present
-    let wasmName = wasmFiles.find(f => /^katex.*\.wasm$/.test(f)) || wasmFiles[0];
-    const wasmPath = path.join(tgtDir, wasmName);
-    runCmd("wasm-bindgen", [wasmPath, "--target", "web", "--out-dir", outDir, "--out-name", "katex_rs"]);
-    console.log("[build] wasm-bindgen build done");
-    return;
-  } catch (e) {
-    console.error(`[build] cargo/wasm-bindgen fallback failed: ${e && e.message ? e.message : e}`);
+    console.error(`[build] wasm-pack unavailable or failed: ${e && e.message ? e.message : e}`);
     throw e;
   }
 }
