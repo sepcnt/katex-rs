@@ -538,7 +538,7 @@ pub fn get_v_list_children_and_depth(
                 // No Elem children found, use default depth of 0
                 0.0
             };
-            
+
             Ok(VListChildrenAndDepth {
                 children: vlist_children,
                 depth,
