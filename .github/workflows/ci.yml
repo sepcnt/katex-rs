@@ -107,8 +107,11 @@ jobs:
             ${{ runner.os }}-cargo-test-
             ${{ runner.os }}-cargo-
 
+      - name: Install cargo-nextest
+        run: cargo install --locked cargo-nextest
+
       - name: Run unit and integration tests
-        run: cargo test --all-features --workspace
+        run: cargo nextest run --no-fail-fast --all-features --workspace
 
   doc-test:
     name: Documentation Tests
@@ -171,14 +174,13 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '22'
 
       - name: Install browser test dependencies
         run: |
-          cd tests/screenshotter
           # Set environment variable to skip Puppeteer Chromium download in case of network issues
           export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-          npm install || echo "npm install failed, continuing..."
+          echo "Dependencies will be installed in the test run step"
 
       - name: Install system Chrome/Chromium
         run: |
@@ -189,9 +191,9 @@ jobs:
         run: |
           # Create test output directories
           mkdir -p tests/screenshotter/new tests/screenshotter/diff
-          # Run the screenshot tests
-          cd tests/screenshotter
-          node run.js --build=always --headless=old || echo "Browser tests completed with warnings/errors"
+          # Run the screenshot tests from project root as per README
+          pushd ./tests/screenshotter && npm install && popd
+          node tests/screenshotter/run.js --build=always --headless=old || echo "Browser tests completed with warnings/errors"
 
       - name: Upload test artifacts
         uses: actions/upload-artifact@v4
