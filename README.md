@@ -62,6 +62,19 @@ pushd ./tests/screenshotter && npm install && popd
 node tests/screenshotter/run.js
 ```
 
+## Continuous Integration
+
+This repository includes a comprehensive GitHub Actions CI/CD pipeline that automatically runs on all pull requests and pushes to the main branch. The CI pipeline includes:
+
+- **Format Check**: `cargo fmt --check` using nightly Rust for advanced formatting features
+- **Code Check**: `cargo check --all-targets --all-features` to ensure the code compiles
+- **Clippy Linting**: `cargo clippy` for code quality and best practices (warnings allowed)
+- **Unit & Integration Tests**: `cargo test --all-features --workspace`
+- **Documentation Tests**: `cargo test --doc` (failures allowed due to outdated examples)  
+- **Browser Tests**: Screenshot tests using Puppeteer (failures allowed, shows warnings only)
+
+The browser tests generate visual diffs and upload them as artifacts for manual review. All jobs use appropriate caching to speed up builds.
+
 ## Compatibility
 
 - **Rust**: 1.70+ (Testing and Linting needs nightly)
