@@ -10,7 +10,7 @@
 //! kinds.
 
 use crate::namespace::KeyMap;
-use crate::types::{LexerInterface, ParseError, Settings, SourceLocation, Token};
+use crate::types::{LexerInterface, ParseError, ParseErrorKind, Settings, SourceLocation, Token};
 use alloc::sync::Arc;
 
 /// Returns the byte index of the last character in the string `s`
@@ -303,7 +303,9 @@ impl<'a> Lexer<'a> {
                 });
                 let token = Token::new(ch.to_owned(), loc);
                 return Err(ParseError::with_token(
-                    format!("Unexpected character: {ch}"),
+                    ParseErrorKind::UnexpectedCharacter {
+                        character: ch.to_owned(),
+                    },
                     &token,
                 ));
             }

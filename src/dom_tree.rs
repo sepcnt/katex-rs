@@ -8,6 +8,7 @@ use core::fmt::Write as _;
 
 use crate::ParseError;
 use crate::namespace::KeyMap;
+use crate::types::ParseErrorKind;
 use bon::bon;
 use phf::phf_map;
 #[cfg(feature = "wasm")]
@@ -1061,7 +1062,9 @@ fn node_attributes_to_markup(
             if attr.contains(|c: char| {
                 c.is_whitespace() || "\"'>/=".contains(c) || ('\x00'..='\x1f').contains(&c)
             }) {
-                return Err(ParseError::new(format!("Invalid attribute name: '{attr}'")));
+                return Err(ParseError::new(ParseErrorKind::InvalidAttributeName {
+                    attr: attr.clone(),
+                }));
             }
             let _ = write!(markup, " {}=\"{}\"", attr, escape(value));
         }

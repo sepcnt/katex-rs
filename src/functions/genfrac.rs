@@ -13,7 +13,7 @@ use crate::options::Options;
 use crate::parser::parse_node::{NodeType, ParseNode, ParseNodeGenfrac, ParseNodeInfix};
 use crate::style::{DISPLAY, SCRIPT, SCRIPTSCRIPT, Style, TEXT};
 use crate::symbols::Atom;
-use crate::types::{ArgType, Mode, ParseError};
+use crate::types::{ArgType, Mode, ParseError, ParseErrorKind};
 use crate::units::make_em;
 use crate::{KatexContext, build_html, build_mathml, make_line_span};
 use phf::Map;
@@ -85,10 +85,11 @@ pub fn define_genfrac(ctx: &mut crate::KatexContext) {
                 "\\\\bracefrac" => (Some("{".to_owned()), Some("}".to_owned()), false),
                 "\\\\brackfrac" => (Some("[".to_owned()), Some("]".to_owned()), false),
                 _ => {
-                    return Err(ParseError::new(format!(
-                        "Unrecognized genfrac command: {}",
-                        context.func_name
-                    )));
+                    return Err(ParseError::new(
+                        ParseErrorKind::UnrecognizedGenfracCommand {
+                            command: context.func_name.clone(),
+                        },
+                    ));
                 }
             };
 
@@ -161,11 +162,13 @@ pub fn define_genfrac(ctx: &mut crate::KatexContext) {
                     token: None,
                 }))
             } else {
-                let msg = format!("Unrecognized infix genfrac command: {}", context.func_name);
+                let kind = ParseErrorKind::UnrecognizedInfixGenfracCommand {
+                    command: context.func_name.clone(),
+                };
                 if let Some(token) = context.token {
-                    Err(ParseError::with_token(msg, token))
+                    Err(ParseError::with_token(kind, token))
                 } else {
-                    Err(ParseError::new(msg))
+                    Err(ParseError::new(kind))
                 }
             }
         }),
@@ -291,16 +294,18 @@ pub fn define_genfrac(ctx: &mut crate::KatexContext) {
             let mut size = None;
             let convert_style = |text: &str| {
                 let level = text.parse::<u8>().map_err(|_| {
-                    ParseError::new(format!("Invalid style level for \\genfrac: {text}"))
+                    ParseError::new(ParseErrorKind::InvalidGenfracStyle {
+                        level: text.to_owned(),
+                    })
                 })?;
                 match level {
                     0 => Ok(DISPLAY),
                     1 => Ok(TEXT),
                     2 => Ok(SCRIPT),
                     3 => Ok(SCRIPTSCRIPT),
-                    _ => Err(ParseError::new(format!(
-                        "Invalid style level for \\genfrac: {level}"
-                    ))),
+                    _ => Err(ParseError::new(ParseErrorKind::InvalidGenfracStyle {
+                        level: level.to_string(),
+                    })),
                 }
             };
 

@@ -13,6 +13,7 @@ use crate::namespace::KeyMap;
 use crate::options::Options;
 use crate::parser::parse_node::AnyParseNode;
 use crate::types::CssProperty;
+use crate::types::ParseErrorKind;
 use crate::units::make_em;
 use phf::{phf_map, phf_set};
 
@@ -229,9 +230,11 @@ pub fn svg_span(group: &AnyParseNode, options: &Options) -> Result<HtmlDomNode, 
         Ok(span.into())
     } else {
         // Handle other stretchy elements
-        let data = IMAGES_DATA
-            .get(label)
-            .ok_or_else(|| ParseError::new(format!("Unknown stretchy element: {label}")))?;
+        let data = IMAGES_DATA.get(label).ok_or_else(|| {
+            ParseError::new(ParseErrorKind::UnknownStretchyElement {
+                label: label.to_owned(),
+            })
+        })?;
 
         let mut spans: Vec<HtmlDomNode> = Vec::new();
         let height_val = data.height / 1000.0;
@@ -259,10 +262,11 @@ pub fn svg_span(group: &AnyParseNode, options: &Options) -> Result<HtmlDomNode, 
                 ],
             ),
             _ => {
-                return Err(ParseError::new(format!(
-                    "Unsupported number of paths: {}",
-                    data.paths.len()
-                )));
+                return Err(ParseError::new(
+                    ParseErrorKind::UnsupportedStretchyPathCount {
+                        count: data.paths.len(),
+                    },
+                ));
             }
         };
 

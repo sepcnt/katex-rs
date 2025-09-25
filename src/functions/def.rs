@@ -16,7 +16,7 @@ use crate::define_function::{FunctionContext, FunctionDefSpec, FunctionPropSpec}
 use crate::parser::parse_node::{NodeType, ParseNode, ParseNodeInternal};
 
 use crate::macros::{MacroContextInterface as _, MacroDefinition, MacroExpansion};
-use crate::types::{ParseError, Token};
+use crate::types::{ParseError, ParseErrorKind, Token};
 
 /// Register all macro definition functions
 pub fn define_def(ctx: &mut KatexContext) {
@@ -71,7 +71,9 @@ fn define_global(ctx: &mut KatexContext) {
                 Ok(inner_node)
             } else {
                 Err(ParseError::with_token(
-                    format!("Invalid token after macro prefix: {}", token.text),
+                    ParseErrorKind::InvalidTokenAfterMacroPrefix {
+                        token: token.text.clone(),
+                    },
                     &token,
                 ))
             }
@@ -130,7 +132,9 @@ fn define_def_cmd(ctx: &mut KatexContext) {
                             .is_some_and(|c| c.is_ascii_digit() && c != '0')
                     {
                         return Err(ParseError::with_token(
-                            format!("Invalid argument number: {}", arg_tok.text),
+                            ParseErrorKind::InvalidMacroArgumentNumber {
+                                value: arg_tok.text.clone(),
+                            },
                             &arg_tok,
                         ));
                     }
@@ -140,7 +144,10 @@ fn define_def_cmd(ctx: &mut KatexContext) {
                         .map_err(|_| ParseError::with_token("Invalid number", &arg_tok))?;
                     if arg_num != num_args + 1 {
                         return Err(ParseError::with_token(
-                            format!("Expected #{} but found #{}", num_args + 1, arg_num),
+                            ParseErrorKind::ExpectedMacroParameter {
+                                expected: num_args + 1,
+                                found: arg_num,
+                            },
                             &arg_tok,
                         ));
                     }

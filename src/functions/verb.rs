@@ -32,7 +32,7 @@ pub fn define_verb(ctx: &mut KatexContext) {
                 // in the regex in Lexer.js.  LaTeX raises the following error when \verb is
                 // terminated by end of line (or file).
                 Err(ParseError::new(
-                    "\\verb ended by end of line instead of matching delimiter".to_owned(),
+                    "\\verb ended by end of line instead of matching delimiter",
                 ))
             },
         ),
@@ -80,7 +80,7 @@ fn html_builder(
         let span_struct = make_span(classes, body, Some(&new_options), None);
         Ok(HtmlDomNode::DomSpan(span_struct))
     } else {
-        Err(ParseError::new("Expected Verb node".to_owned()))
+        Err(ParseError::new("Expected Verb node"))
     }
 }
 
@@ -105,7 +105,7 @@ fn mathml_builder(
 
         Ok(MathDomNode::Math(mtext))
     } else {
-        Err(ParseError::new("Expected Verb node".to_owned()))
+        Err(ParseError::new("Expected Verb node"))
     }
 }
 

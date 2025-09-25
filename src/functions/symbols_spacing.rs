@@ -10,7 +10,7 @@ use crate::dom_tree::HtmlDomNode;
 use crate::mathml_tree::{MathDomNode, MathNode, MathNodeType, TextNode};
 use crate::options::Options;
 use crate::parser::parse_node::{NodeType, ParseNode};
-use crate::types::{Mode, ParseError};
+use crate::types::{Mode, ParseError, ParseErrorKind};
 use phf::phf_map;
 
 /// CSS-based spacing functions mapped to their CSS class names
@@ -41,10 +41,9 @@ fn html_builder(
         || {
             CSS_SPACE.get(&spacing_node.text).map_or_else(
                 || {
-                    Err(ParseError::new(format!(
-                        "Unknown type of space: {}",
-                        spacing_node.text
-                    )))
+                    Err(ParseError::new(ParseErrorKind::UnknownSpaceType {
+                        name: spacing_node.text.clone(),
+                    }))
                 },
                 |class_name| {
                     // CSS-based spacing
@@ -100,10 +99,9 @@ fn mathml_builder(
             .build()
             .into())
     } else {
-        Err(ParseError::new(format!(
-            "Unknown type of space: {}",
-            spacing_node.text
-        )))
+        Err(ParseError::new(ParseErrorKind::UnknownSpaceType {
+            name: spacing_node.text.clone(),
+        }))
     }
 }
 

@@ -16,8 +16,7 @@ use strum::EnumString;
 
 /// Parse error type - imported from parse_error module
 mod parse_error;
-pub use parse_error::ErrorLocationProvider;
-pub use parse_error::ParseError;
+pub use parse_error::{ErrorLocationProvider, ParseError, ParseErrorKind};
 use strum::FromRepr;
 
 mod tokens;

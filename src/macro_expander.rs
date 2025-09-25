@@ -9,7 +9,7 @@ use crate::context::KatexContext;
 use crate::lexer::Lexer;
 use crate::macros::builtins::BUILTIN_MACROS;
 use crate::namespace::{KeyMap, Namespace};
-use crate::types::{Mode, ParseError, Settings, Token};
+use crate::types::{Mode, ParseError, ParseErrorKind, Settings, Token};
 
 use crate::macros::{
     MacroArg, MacroContextInterface, MacroDefinition, MacroExpansion, MacroExpansionResult,
@@ -186,7 +186,7 @@ impl<'a> MacroExpander<'a> {
                     && !self.is_defined(&name)
                 {
                     return Err(ParseError::with_token(
-                        format!("Undefined control sequence: {name}"),
+                        ParseErrorKind::UndefinedControlSequence { name: name.clone() },
                         &top_token,
                     ));
                 }
@@ -440,7 +440,9 @@ impl<'a> MacroContextInterface<'a> for MacroExpander<'a> {
                     }
                 });
                 return Err(ParseError::with_token(
-                    format!("Unexpected end of input in a macro argument, expected '{expected}'"),
+                    ParseErrorKind::UnexpectedEndOfMacroArgument {
+                        expected: expected.to_owned(),
+                    },
                     &tok,
                 ));
             }

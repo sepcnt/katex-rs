@@ -18,7 +18,7 @@ use crate::options::Options;
 use crate::style::{SCRIPT, SCRIPTSCRIPT, Style, TEXT};
 use crate::svg_geometry::{inner_path, sqrt_path, tall_delim};
 use crate::symbols::Mode;
-use crate::types::{CssProperty, ParseError};
+use crate::types::{CssProperty, ParseError, ParseErrorKind};
 use crate::units::make_em;
 use crate::{CharacterMetrics, KatexContext};
 
@@ -90,9 +90,10 @@ fn get_metrics(
     {
         Ok(metrics)
     } else {
-        Err(ParseError::new(format!(
-            "Unsupported symbol '{symbol}' and font size '{font}'"
-        )))
+        Err(ParseError::new(ParseErrorKind::UnsupportedSymbolFont {
+            symbol: symbol.to_owned(),
+            font: font.to_owned(),
+        }))
     }
 }
 
@@ -781,7 +782,9 @@ pub fn sized_delim(
             classes,
         )
     } else {
-        Err(ParseError::new(format!("Illegal delimiter: '{delim}'")))
+        Err(ParseError::new(ParseErrorKind::IllegalDelimiter {
+            delim: delim.to_owned(),
+        }))
     }
 }
 

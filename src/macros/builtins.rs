@@ -10,7 +10,7 @@ use crate::{
     font_metrics_data::MAIN_REGULAR_METRICS,
     macros::{MacroContextInterface, MacroDefinition, MacroExpansion, MacroExpansionResult},
     symbols::{Atom, Group},
-    types::Mode,
+    types::{Mode, ParseErrorKind},
     units::make_em,
 };
 use phf::{phf_map, phf_set};
@@ -207,14 +207,14 @@ fn new_command(
     let name = &arg[0].text;
     let exists = context.is_defined(name);
     if exists && !exists_ok {
-        return Err(ParseError::new(format!(
-            "\\newcommand{{{name}}} attempting to redefine {name}; use \\renewcommand"
-        )));
+        return Err(ParseError::new(ParseErrorKind::NewcommandRedefinition {
+            name: name.clone(),
+        }));
     }
     if !exists && !nonexists_ok {
-        return Err(ParseError::new(format!(
-            "\\renewcommand{{{name}}} when {name} does not yet exist; use \\newcommand"
-        )));
+        return Err(ParseError::new(ParseErrorKind::RenewcommandNonexistent {
+            name: name.clone(),
+        }));
     }
 
     let mut num_args = 0;
@@ -368,7 +368,10 @@ pub const BUILTIN_MACROS: phf::Map<&str, MacroDefinition> = phf_map! {
             if let Some(digit) = digit && digit < base {
                 number = digit;
             } else {
-                return Err(ParseError::new(format!("Invalid base-{} digit {}", base, token.text)));
+                return Err(ParseError::new(ParseErrorKind::InvalidBaseDigit {
+                    base,
+                    digit: token.text.clone(),
+                }));
             }
 
             while let Ok(tok) = context.future_mut() && tok.text != "EOF" {

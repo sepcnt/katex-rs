@@ -8,7 +8,7 @@ use crate::dom_tree::{DomSpan, HtmlDomNode};
 use crate::options::Options;
 use crate::parser::parse_node::AnyParseNode;
 use crate::spacing_data::{SPACINGS, TIGHT_SPACINGS};
-use crate::types::{CssProperty, ParseError};
+use crate::types::{CssProperty, ParseError, ParseErrorKind};
 use crate::units::make_em;
 use crate::utils::OwnedOrMut;
 use crate::{KatexContext, build_common};
@@ -566,9 +566,9 @@ pub fn build_group(
         // Call the registered group builder
         builder(group, options, ctx)?
     } else {
-        return Err(ParseError::new(format!(
-            "Got group of unknown type: {group_type:?}"
-        )));
+        return Err(ParseError::new(ParseErrorKind::UnknownGroupType {
+            group_type,
+        }));
     };
 
     if let Some(base_options) = base_options

@@ -12,7 +12,7 @@ use crate::{
     parser::parse_node::{AnyParseNode, NodeType, ParseNode, ParseNodeSize},
     style::TEXT,
     symbols::{Group, NonAtom},
-    types::{ArgType, BreakToken, ErrorLocationProvider, Mode, Spec, Token},
+    types::{ArgType, BreakToken, ErrorLocationProvider, Mode, ParseErrorKind, Spec, Token},
     unicode::{UNICODE_SYMBOLS, get_accent_mapping, supported_codepoint},
 };
 use phf::phf_set;
@@ -224,7 +224,10 @@ impl<'a> Parser<'a> {
         let token = self.fetch()?;
         if token.text != text {
             return Err(ParseError::with_token(
-                format!("Expected '{}', got '{}'", text, token.text),
+                ParseErrorKind::ExpectedToken {
+                    expected: text.to_owned(),
+                    found: token.text.clone(),
+                },
                 token,
             ));
         }
@@ -926,7 +929,10 @@ impl<'a> Parser<'a> {
 
         if str.is_empty() {
             return Err(ParseError::with_token(
-                format!("Invalid {}: '{}'", mode_name, first_token.text),
+                ParseErrorKind::InvalidValue {
+                    context: mode_name.to_owned(),
+                    value: first_token.text.clone(),
+                },
                 &first_token,
             ));
         }
@@ -978,7 +984,10 @@ impl<'a> Parser<'a> {
         let is_6hex = text.len() == 6 && text.chars().all(|c| c.is_ascii_hexdigit());
         if !(is_letters || is_hash3 || is_hash6 || is_6hex) {
             return Err(ParseError::with_token(
-                format!("Invalid color: '{text}'"),
+                ParseErrorKind::InvalidValue {
+                    context: "color".to_owned(),
+                    value: text,
+                },
                 &tok,
             ));
         }
@@ -1061,7 +1070,9 @@ impl<'a> Parser<'a> {
 
         let Some(matched) = parse_size_with_unit(&res.text) else {
             return Err(ParseError::with_token(
-                format!("Invalid size: '{}'", res.text),
+                ParseErrorKind::InvalidSize {
+                    size: res.text.clone(),
+                },
                 &res,
             ));
         };
@@ -1072,7 +1083,9 @@ impl<'a> Parser<'a> {
         };
 
         if !valid_unit(&data) {
-            return Err(ParseError::new(format!("Invalid unit: '{}'", data.unit)));
+            return Err(ParseError::new(ParseErrorKind::InvalidUnit {
+                unit: data.unit,
+            }));
         }
         Ok(Some(ParseNodeSize {
             mode: self.mode,
@@ -1192,7 +1205,9 @@ impl<'a> Parser<'a> {
                 } else {
                     let token = self.fetch()?;
                     Err(ParseError::with_token(
-                        format!("Expected group as {name}"),
+                        ParseErrorKind::ExpectedGroupAs {
+                            context: name.to_owned(),
+                        },
                         token,
                     ))
                 }
@@ -1246,7 +1261,7 @@ impl<'a> Parser<'a> {
             {
                 if self.settings.throw_on_error {
                     return Err(ParseError::with_token(
-                        format!("Undefined control sequence: {text}"),
+                        ParseErrorKind::UndefinedControlSequence { name: text.clone() },
                         &first_token,
                     ));
                 }
@@ -1303,17 +1318,26 @@ impl<'a> Parser<'a> {
             && !func_data.allowed_in_argument
         {
             return Err(ParseError::with_token(
-                format!("Got function '{func}' with no arguments as {name}"),
+                ParseErrorKind::FunctionMissingArguments {
+                    func: func.to_owned(),
+                    context: name.to_owned(),
+                },
                 &token,
             ));
         } else if self.mode == Mode::Text && !func_data.allowed_in_text {
             return Err(ParseError::with_token(
-                format!("Can't use function {func} in text mode"),
+                ParseErrorKind::FunctionDisallowedInMode {
+                    func: func.to_owned(),
+                    mode: Mode::Text,
+                },
                 &token,
             ));
         } else if self.mode == Mode::Math && !func_data.allowed_in_math {
             return Err(ParseError::with_token(
-                format!("Can't use function {func} in math mode"),
+                ParseErrorKind::FunctionDisallowedInMode {
+                    func: func.to_owned(),
+                    mode: Mode::Math,
+                },
                 &token,
             ));
         }
@@ -1339,8 +1363,7 @@ impl<'a> Parser<'a> {
             // Validate that body has matching delimiters
             if body.len() < 2 || body.chars().next() != body.chars().last() {
                 return Err(ParseError::with_token(
-                    "\\verb assertion failed -- please report what input caused this bug"
-                        .to_owned(),
+                    "\\verb assertion failed -- please report what input caused this bug",
                     &nucleus,
                 ));
             }
@@ -1481,7 +1504,10 @@ impl<'a> Parser<'a> {
                     };
                     if command.is_empty() {
                         return Err(ParseError::with_token(
-                            format!("Accent {} unsupported in {:?} mode", ch, self.mode),
+                            ParseErrorKind::UnsupportedAccentInMode {
+                                accent: ch.to_string(),
+                                mode: self.mode,
+                            },
                             &nucleus,
                         ));
                     }
@@ -1495,7 +1521,9 @@ impl<'a> Parser<'a> {
                     }));
                 } else {
                     return Err(ParseError::with_token(
-                        format!("Unknown accent '{ch}'"),
+                        ParseErrorKind::UnknownAccent {
+                            accent: ch.to_string(),
+                        },
                         &nucleus,
                     ));
                 }
@@ -1542,7 +1570,9 @@ impl<'a> Parser<'a> {
         group.map_or_else(
             || {
                 Err(ParseError::with_token(
-                    format!("Expected group after '{symbol}'"),
+                    ParseErrorKind::ExpectedGroupAfterSymbol {
+                        symbol: symbol.clone(),
+                    },
                     &symbol_token,
                 ))
             },
@@ -1574,7 +1604,9 @@ impl<'a> Parser<'a> {
             return handler(context, args, opt_args);
         }
 
-        Err(ParseError::new(format!("No function handler for {name}")))
+        Err(ParseError::new(ParseErrorKind::NoFunctionHandler {
+            name: name.to_owned(),
+        }))
     }
 
     /// Parses the arguments of a function or environment
@@ -1616,7 +1648,7 @@ impl<'a> Parser<'a> {
                 args.push(a);
             } else {
                 return Err(ParseError::new(
-                    "Null argument, please report this as a bug".to_owned(),
+                    "Null argument, please report this as a bug",
                 ));
             }
         }
