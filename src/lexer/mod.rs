@@ -308,9 +308,12 @@ impl<'a> Lexer<'a> {
                 ));
             }
             BranchKind::ControlWordWhitespace => &slice[..matched.mlen - matched.skip],
-            BranchKind::ControlSymbol | BranchKind::NormalWithAccents => &slice[..matched.mlen],
+            BranchKind::ControlSymbol
+            | BranchKind::NormalWithAccents
+            | BranchKind::Verb
+            | BranchKind::VerbStar => &slice[..matched.mlen],
             BranchKind::ControlSpace => r"\ ",
-            _ => " ",
+            BranchKind::Space => " ",
         };
 
         if text.len() == 1
