@@ -84,7 +84,7 @@ curl -LsSf https://get.nexte.st/latest/linux | tar zxf - -C ${CARGO_HOME:-~/.car
 curl https://drager.github.io/wasm-pack/installer/init.sh -sSf | sh
 ```
 
-(Or with cargo)
+(Or with cargo if you prefer but it's very slow)
 ```bash
 cargo install --locked cargo-nextest
 cargo install wasm-pack

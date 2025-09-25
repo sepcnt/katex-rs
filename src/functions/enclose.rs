@@ -229,7 +229,7 @@ fn html_builder(
             return Ok(make_span(
                 vec!["mord".to_owned(), "cancel-lap".to_owned()],
                 vec![vlist.into()],
-                None,
+                Some(options),
                 None,
             )
             .into());
@@ -418,19 +418,11 @@ fn html_builder(
         )?
     };
 
-    // Handle cancel height adjustment
-    if label.contains("cancel") {
-        // The cancel package documentation says that cancel lines add their
-        // height to the expression, but tests show that isn't how it
-        // actually works. vlist.height = inner.height;
-        // vlist.depth = inner.depth;
-    }
-
     if label.contains("cancel") && !is_single_char {
         Ok(make_span(
             vec!["mord".to_owned(), "cancel-lap".to_owned()],
             vec![vlist.into()],
-            None,
+            Some(options),
             None,
         )
         .into())
