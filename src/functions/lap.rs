@@ -86,7 +86,7 @@ fn html_builder(
 
     // Create main lap span
     let mut lap_span = make_span(
-        vec![lap_node.alignment.css_class().to_owned()],
+        vec![lap_node.alignment.as_ref().to_owned()],
         vec![inner.into(), fix.into()],
         Some(options),
         None,

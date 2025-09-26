@@ -1940,13 +1940,6 @@ pub enum LapAlignment {
     Right,
 }
 
-impl LapAlignment {
-    /// Returns the CSS class used by KaTeX for this alignment variant.
-    pub fn css_class(&self) -> &str {
-        self.as_ref()
-    }
-}
-
 /// Represents left-right delimiter pairs in mathematical expressions.
 ///
 /// This struct handles matching delimiter pairs that enclose mathematical
