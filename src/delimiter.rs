@@ -211,8 +211,7 @@ fn center_span(span: &DomSpan, options: &Options, style: &'static Style) -> DomS
     span.classes.push("delimcenter".to_owned());
     span.height -= shift;
     span.depth += shift;
-    span.style
-        .insert(CssProperty::VerticalAlign, make_em(-shift));
+    span.style.insert(CssProperty::Top, make_em(shift));
     span
 }
 

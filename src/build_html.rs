@@ -148,7 +148,7 @@ pub fn make_null_delimiter(options: &Options, classes: &[String]) -> DomSpan {
     combined_classes.extend_from_slice(classes);
     combined_classes.push(String::from("nulldelimiter"));
     combined_classes.extend(options.base_sizing_classes());
-    make_span(combined_classes, vec![], Some(options), None)
+    make_span(combined_classes, vec![], None, None)
 }
 
 /// Check if given node is a partial group, i.e., does not affect spacing
