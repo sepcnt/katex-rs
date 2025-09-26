@@ -763,46 +763,51 @@ pub fn build_html(
     // binary operation is on the ``outer level'' of the formula (i.e., not
     // enclosed in {...} and not part of an \over construction)."
     let mut parts = Vec::new();
-    let mut i = 0;
-    while i < expression.len() {
-        parts.push(expression[i].clone());
-        if expression[i].has_class("mbin")
-            || expression[i].has_class("mrel")
-            || expression[i].has_class("allowbreak")
-        {
+    let mut iter = expression.into_iter().peekable();
+    while let Some(node) = iter.next() {
+        let is_break_candidate =
+            node.has_class("mbin") || node.has_class("mrel") || node.has_class("allowbreak");
+        let is_newline = node.has_class("newline");
+
+        parts.push(node);
+
+        if is_break_candidate {
             // Put any post-operator glue on same line as operator.
             // Watch for \nobreak along the way, and stop at \newline.
             let mut nobreak = false;
-            while i < expression.len() - 1
-                && expression[i + 1].has_class("mspace")
-                && !expression[i + 1].has_class("newline")
+            while let Some(next) =
+                iter.next_if(|n| n.has_class("mspace") && !n.has_class("newline"))
             {
-                i += 1;
-                parts.push(expression[i].clone());
-                if expression[i].has_class("nobreak") {
+                if next.has_class("nobreak") {
                     nobreak = true;
                 }
+                parts.push(next);
             }
             // Don't allow break if \nobreak among the post-operator glue.
             if !nobreak {
-                children.push(build_html_unbreakable(parts, options));
-                parts = Vec::new();
+                let mut chunk = Vec::with_capacity(parts.len());
+                chunk.append(&mut parts);
+                children.push(build_html_unbreakable(chunk, options));
             }
-        } else if expression[i].has_class("newline") {
+        } else if is_newline {
             // Write the line except the newline
-            parts.pop();
+            let newline = parts
+                .pop()
+                .ok_or_else(|| ParseError::new("newline node should be the last pushed element"))?;
             if !parts.is_empty() {
-                children.push(build_html_unbreakable(parts, options));
-                parts = Vec::new();
+                let mut chunk = Vec::with_capacity(parts.len());
+                chunk.append(&mut parts);
+                children.push(build_html_unbreakable(chunk, options));
             }
             // Put the newline at the top level
-            children.push(expression[i].clone());
+            children.push(newline);
         }
-        i += 1;
     }
 
     if !parts.is_empty() {
-        children.push(build_html_unbreakable(parts, options));
+        let mut chunk = Vec::with_capacity(parts.len());
+        chunk.append(&mut parts);
+        children.push(build_html_unbreakable(chunk, options));
     }
 
     // Now, if there was a tag, build it too and append it as a final child.

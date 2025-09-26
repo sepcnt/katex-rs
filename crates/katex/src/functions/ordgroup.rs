@@ -52,7 +52,7 @@ fn html_builder(
             build_html::GroupType::False,
             (None, None),
         )?;
-        Ok(make_fragment(&body).into())
+        Ok(make_fragment(body).into())
     } else {
         // Use makeSpan with "mord" class
         let body = build_html::build_expression(

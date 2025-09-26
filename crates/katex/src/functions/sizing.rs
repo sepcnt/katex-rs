@@ -75,7 +75,7 @@ pub fn sizing_group(
         }
     }
 
-    Ok(make_fragment(&inner).into())
+    Ok(make_fragment(inner).into())
 }
 
 /// HTML builder for sizing nodes

@@ -405,7 +405,7 @@ fn html_builder(
             depth += jot;
         }
 
-        let elements: Vec<HtmlDomNode> = outrow.iter().map(|e| e.elem.clone()).collect();
+        let elements: Vec<HtmlDomNode> = outrow.into_iter().map(|e| e.elem).collect();
 
         body.push(Outrow {
             elements,
@@ -674,7 +674,7 @@ fn html_builder(
             Some(options),
             None,
         );
-        Ok(make_fragment(&[mtable.into(), tag_span.into()]).into())
+        Ok(make_fragment(vec![mtable.into(), tag_span.into()]).into())
     }
 }
 

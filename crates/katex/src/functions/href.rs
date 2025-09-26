@@ -151,7 +151,7 @@ fn html_builder(
     }
 
     // Create anchor element
-    Ok(make_anchor(&href_node.href, &[], &body_elements, options).into())
+    Ok(make_anchor(&href_node.href, &[], body_elements, options).into())
 }
 
 /// MathML builder for href nodes

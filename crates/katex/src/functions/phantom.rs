@@ -104,7 +104,7 @@ fn html_builder_phantom(
 
     // \phantom isn't supposed to affect the elements it contains.
     // See "color" for more details.
-    Ok(make_fragment(&elements).into())
+    Ok(make_fragment(elements).into())
 }
 
 /// HTML builder for \hphantom nodes

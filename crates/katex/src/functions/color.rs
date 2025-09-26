@@ -120,7 +120,7 @@ fn html_builder(
     // To accomplish this, we wrap the results in a fragment, so the inner
     // elements will be able to directly interact with their neighbors.
     // For example, `\color{red}{2 +} 3` has the same spacing as `2 + 3`
-    Ok(make_fragment(&elements).into())
+    Ok(make_fragment(elements).into())
 }
 
 /// MathML builder for color nodes

@@ -235,17 +235,8 @@ pub struct VListChildrenAndDepth {
 
 /// Compute height, depth, and max_font_size of an element based on its children
 fn size_element_from_children_dom(node: &mut DomSpan) {
-    let mut height = 0.0f64;
-    let mut depth = 0.0f64;
-    let mut max_font_size = 0.0f64;
+    let (height, depth, max_font_size) = size_properties(&node.children);
 
-    for child in &node.children {
-        height = height.max(child.height());
-        depth = depth.max(child.depth());
-        max_font_size = max_font_size.max(child.max_font_size());
-    }
-
-    // Update the node's values
     node.height = height;
     node.depth = depth;
     node.max_font_size = max_font_size;
@@ -423,45 +414,77 @@ pub fn get_v_list_children_and_depth(
         VListParam::IndividualShift {
             children: old_children,
         } => {
-            let mut children: Vec<VListChild> = Vec::new();
-
-            // Add the first child
-            let first_child = &old_children[0];
-            let first_elem = VListElem {
-                elem: first_child.elem.clone(),
-                shift: Some(first_child.shift),
-                margin_left: first_child.margin_left.clone(),
-                margin_right: first_child.margin_right.clone(),
-                wrapper_classes: first_child.wrapper_classes.clone(),
-                wrapper_style: first_child.wrapper_style.clone(),
+            let mut iter = old_children.into_iter();
+            let Some(first_child) = iter.next() else {
+                return Ok(VListChildrenAndDepth {
+                    children: Vec::new(),
+                    depth: 0.0,
+                });
             };
-            children.push(first_elem.into());
 
-            // Calculate initial depth
-            let depth = -old_children[0].shift - old_children[0].elem.depth();
+            let VListElemAndShift {
+                elem,
+                shift,
+                margin_left,
+                margin_right,
+                wrapper_classes,
+                wrapper_style,
+            } = first_child;
+
+            let elem_height = elem.height();
+            let elem_depth = elem.depth();
+            let depth = -shift - elem_depth;
             let mut curr_pos = depth;
+            let mut prev_height = elem_height;
+            let mut prev_depth = elem_depth;
+
+            let mut children: Vec<VListChild> = Vec::new();
+            children.push(
+                VListElem {
+                    elem,
+                    shift: Some(shift),
+                    margin_left,
+                    margin_right,
+                    wrapper_classes,
+                    wrapper_style,
+                }
+                .into(),
+            );
 
             // Add in kerns to the list of children to get each element to be
             // shifted to the correct specified shift
-            for i in 1..old_children.len() {
-                let child = &old_children[i];
-                let diff = -child.shift - curr_pos - child.elem.depth();
-                let size =
-                    diff - (old_children[i - 1].elem.height() + old_children[i - 1].elem.depth());
+            for child in iter {
+                let VListElemAndShift {
+                    elem,
+                    shift,
+                    margin_left,
+                    margin_right,
+                    wrapper_classes,
+                    wrapper_style,
+                } = child;
+
+                let elem_height = elem.height();
+                let elem_depth = elem.depth();
+                let diff = -shift - curr_pos - elem_depth;
+                let size = diff - (prev_height + prev_depth);
 
                 curr_pos += diff;
 
                 children.push(VListChild::Kern(VListKern { size }));
+                children.push(
+                    VListElem {
+                        elem,
+                        shift: Some(shift),
+                        margin_left,
+                        margin_right,
+                        wrapper_classes,
+                        wrapper_style,
+                    }
+                    .into(),
+                );
 
-                let elem = VListElem {
-                    elem: child.elem.clone(),
-                    shift: Some(child.shift),
-                    margin_left: child.margin_left.clone(),
-                    margin_right: child.margin_right.clone(),
-                    wrapper_classes: child.wrapper_classes.clone(),
-                    wrapper_style: child.wrapper_style.clone(),
-                };
-                children.push(elem.into());
+                prev_height = elem_height;
+                prev_depth = elem_depth;
             }
 
             Ok(VListChildrenAndDepth { children, depth })
@@ -917,7 +940,7 @@ pub fn make_ord(
                 )?;
                 parts.push(symbol.into());
             }
-            return Ok(make_fragment(&parts).into());
+            return Ok(make_fragment(parts).into());
         }
     }
 
@@ -1130,55 +1153,6 @@ fn bold_symbol(
     }
 }
 
-/// Trait for elements that have size properties (height, depth, maxFontSize)
-trait HasSizeProperties {
-    fn set_height(&mut self, height: f64);
-    fn set_depth(&mut self, depth: f64);
-    fn set_max_font_size(&mut self, max_font_size: f64);
-}
-
-impl HasSizeProperties for DomSpan {
-    fn set_height(&mut self, height: f64) {
-        self.height = height;
-    }
-
-    fn set_depth(&mut self, depth: f64) {
-        self.depth = depth;
-    }
-
-    fn set_max_font_size(&mut self, max_font_size: f64) {
-        self.max_font_size = max_font_size;
-    }
-}
-
-impl HasSizeProperties for Anchor {
-    fn set_height(&mut self, height: f64) {
-        self.height = height;
-    }
-
-    fn set_depth(&mut self, depth: f64) {
-        self.depth = depth;
-    }
-
-    fn set_max_font_size(&mut self, max_font_size: f64) {
-        self.max_font_size = max_font_size;
-    }
-}
-
-impl HasSizeProperties for DocumentFragment<HtmlDomNode> {
-    fn set_height(&mut self, height: f64) {
-        self.height = height;
-    }
-
-    fn set_depth(&mut self, depth: f64) {
-        self.depth = depth;
-    }
-
-    fn set_max_font_size(&mut self, max_font_size: f64) {
-        self.max_font_size = max_font_size;
-    }
-}
-
 /// Makes a line span with the given className, options, and thickness
 ///
 /// Creates a span element designed to represent a horizontal line (rule) in
@@ -1238,7 +1212,7 @@ pub fn make_line_span(class_name: &str, options: &Options, thickness: Option<f64
 pub fn make_anchor(
     href: &str,
     classes: &[String],
-    children: &[HtmlDomNode],
+    children: Vec<HtmlDomNode>,
     options: &Options,
 ) -> Anchor {
     // Create attributes map with href
@@ -1246,7 +1220,7 @@ pub fn make_anchor(
     attributes.insert("href".to_owned(), href.to_owned());
 
     let mut anchor = Anchor::builder()
-        .children(children.to_owned())
+        .children(children)
         .attributes(attributes)
         .classes(classes.to_vec())
         .height(0.0)
@@ -1255,7 +1229,10 @@ pub fn make_anchor(
         .build(Some(options));
 
     // Calculate size properties based on children
-    size_element_from_children(&mut anchor, children);
+    let (height, depth, max_font_size) = size_properties(&anchor.children);
+    anchor.height = height;
+    anchor.depth = depth;
+    anchor.max_font_size = max_font_size;
 
     anchor
 }
@@ -1275,11 +1252,14 @@ pub fn make_anchor(
 /// # Returns
 /// An HtmlDocumentFragment properly sized based on its children
 #[must_use]
-pub fn make_fragment(children: &[HtmlDomNode]) -> HtmlDomFragment {
-    let mut fragment = DocumentFragment::new(children.to_owned());
+pub fn make_fragment(children: Vec<HtmlDomNode>) -> HtmlDomFragment {
+    let mut fragment = DocumentFragment::new(children);
 
     // Calculate size properties based on children
-    size_element_from_children(&mut fragment, children);
+    let (height, depth, max_font_size) = size_properties(&fragment.children);
+    fragment.height = height;
+    fragment.depth = depth;
+    fragment.max_font_size = max_font_size;
 
     fragment
 }
@@ -1316,16 +1296,7 @@ pub fn wrap_fragment(group: HtmlDomNode, options: &Options) -> HtmlDomNode {
     }
 }
 
-/// Calculate the height, depth, and maxFontSize of an element based on its
-/// children
-///
-/// This helper function corresponds to the JavaScript `sizeElementFromChildren`
-/// function and updates the size properties of spans, anchors, and fragments
-/// based on their children.
-fn size_element_from_children<T>(elem: &mut T, children: &[HtmlDomNode])
-where
-    T: HasSizeProperties,
-{
+fn size_properties(children: &[HtmlDomNode]) -> (f64, f64, f64) {
     let mut height = 0.0;
     let mut depth = 0.0;
     let mut max_font_size = 0.0;
@@ -1342,7 +1313,5 @@ where
         }
     }
 
-    elem.set_height(height);
-    elem.set_depth(depth);
-    elem.set_max_font_size(max_font_size);
+    (height, depth, max_font_size)
 }

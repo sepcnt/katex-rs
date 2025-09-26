@@ -70,7 +70,7 @@ fn html_builder(
     let body = choose_math_style(group, options);
     let elements =
         build_html::build_expression(ctx, body, options, GroupType::False, (None, None))?;
-    Ok(make_fragment(&elements).into())
+    Ok(make_fragment(elements).into())
 }
 
 /// MathML builder for mathchoice nodes

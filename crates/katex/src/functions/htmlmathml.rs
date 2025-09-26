@@ -56,7 +56,7 @@ fn html_builder(
         (None, None),
     )?;
 
-    Ok(make_fragment(&elements).into())
+    Ok(make_fragment(elements).into())
 }
 
 /// MathML builder for htmlmathml nodes

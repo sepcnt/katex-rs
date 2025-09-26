@@ -58,7 +58,7 @@ fn html_builder(
         build_html::GroupType::False,
         (None, None),
     )?;
-    Ok(make_fragment(&elements).into())
+    Ok(make_fragment(elements).into())
 }
 
 /// MathML builder for hbox nodes
