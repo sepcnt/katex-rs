@@ -514,6 +514,9 @@ async function compareOrDiff(actualPath, expectedPath, diffPath) {
       logDiff.warn(`size=${a.width}x${a.height}, baseline=${e.width}x${e.height}, mismatched=${mismatched}/${a.width * a.height}`);
       ensureDir(diffPath);
       await fsp.writeFile(diffPath, PNG.sync.write(diff));
+    } else {
+      // small diff; remove any existing diff file
+      try { await fsp.unlink(diffPath); } catch (_) { /* ignore */ }
     }
     return { equal: mismatched <= 1200, diffWritten: mismatched >= 400, diffPixels: mismatched }; // allow tiny diffs
   } catch (e) {
