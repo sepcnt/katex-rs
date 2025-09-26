@@ -1,7 +1,7 @@
 use core::iter;
 
 use crate::parser::parse_node::ParseNodeTextOrd;
-use crate::types::SourceRangeRef as _;
+use crate::types::{SourceRangeRef as _, TokenText};
 use crate::unicode::unicode_sup_or_sub::U_SUBS_AND_SUPS;
 use crate::{
     KatexContext, ParseError, Settings,
@@ -226,7 +226,7 @@ impl<'a> Parser<'a> {
             return Err(ParseError::with_token(
                 ParseErrorKind::ExpectedToken {
                     expected: text.to_owned(),
-                    found: token.text.clone(),
+                    found: token.text.to_owned_string(),
                 },
                 token,
             ));
@@ -540,7 +540,7 @@ impl<'a> Parser<'a> {
             }
 
             // Copy current token text to avoid holding a borrow across calls
-            let lex_text = { self.fetch()?.text.clone() };
+            let lex_text = { self.fetch()?.text.to_owned_string() };
 
             // End conditions: end-of-expression tokens
             if END_OF_EXPRESSION.contains(&lex_text) {
@@ -743,7 +743,7 @@ impl<'a> Parser<'a> {
                         let mut subsup_tokens = vec![Token::new(mapped.to_owned(), None)];
                         self.consume();
                         loop {
-                            let token = self.fetch()?.text.clone();
+                            let token = self.fetch()?.text.to_owned_string();
                             if let Some(c) = token.chars().next()
                                 && let Some(&mapped) = U_SUBS_AND_SUPS.get(&c)
                                 && is_sub == is_unicode_subscript(c)
@@ -931,7 +931,7 @@ impl<'a> Parser<'a> {
             return Err(ParseError::with_token(
                 ParseErrorKind::InvalidValue {
                     context: mode_name.to_owned(),
-                    value: first_token.text.clone(),
+                    value: first_token.text.to_owned_string(),
                 },
                 &first_token,
             ));
@@ -960,12 +960,12 @@ impl<'a> Parser<'a> {
             if next.text == "EOF" {
                 break;
             }
-            s.push_str(&next.text);
+            s.push_str(next.text.as_str());
             self.consume();
         }
         // consume EOF
         self.consume();
-        arg_token.text = s;
+        arg_token.text = TokenText::Owned(s.into());
         Ok(Some(arg_token))
     }
 
@@ -973,7 +973,7 @@ impl<'a> Parser<'a> {
     fn parse_color_group(&mut self, optional: bool) -> Result<Option<ParseNode>, ParseError> {
         let res = self.parse_string_group("color", optional)?;
         let Some(tok) = res else { return Ok(None) };
-        let mut text = tok.text.clone();
+        let mut text = tok.text.to_owned_string();
         let is_letters = text.chars().all(|c| c.is_ascii_alphabetic());
         let is_hash3 = text.starts_with('#')
             && text.len() == 4
@@ -1062,16 +1062,16 @@ impl<'a> Parser<'a> {
 
         let Some(mut res) = res else { return Ok(None) };
         let is_blank = if !optional && res.text.is_empty() {
-            "0pt".clone_into(&mut res.text);
+            res.text = TokenText::Static("0pt");
             true
         } else {
             false
         };
 
-        let Some(matched) = parse_size_with_unit(&res.text) else {
+        let Some(matched) = parse_size_with_unit(res.text.as_str()) else {
             return Err(ParseError::with_token(
                 ParseErrorKind::InvalidSize {
-                    size: res.text.clone(),
+                    size: res.text.to_owned_string(),
                 },
                 &res,
             ));
@@ -1110,7 +1110,7 @@ impl<'a> Parser<'a> {
 
         let Some(tok) = res else { return Ok(None) };
         let mut url = String::new();
-        let mut chars = tok.text.chars().peekable();
+        let mut chars = tok.text.as_str().chars().peekable();
         while let Some(c) = chars.next() {
             if c == '\\'
                 && let Some(&n) = chars.peek()
@@ -1190,7 +1190,7 @@ impl<'a> Parser<'a> {
                     Ok(Some(ParseNode::Raw(parse_node::ParseNodeRaw {
                         mode: Mode::Text,
                         loc: None,
-                        string: t.text,
+                        string: t.text.to_owned_string(),
                     })))
                 } else {
                     Ok(None)
@@ -1223,7 +1223,7 @@ impl<'a> Parser<'a> {
         break_on_token_text: Option<&BreakToken>,
     ) -> Result<Option<ParseNode>, ParseError> {
         let first_token = self.fetch()?.clone();
-        let text = first_token.text.clone();
+        let text = first_token.text.to_owned_string();
         if text == "{" || text == "\\begingroup" {
             self.consume();
             let break_token = if text == "{" {
@@ -1307,7 +1307,7 @@ impl<'a> Parser<'a> {
     ) -> Result<Option<ParseNode>, ParseError> {
         let token = self.fetch()?.clone();
         let func = &token.text;
-        let Some(func_data) = self.ctx.functions.get(func) else {
+        let Some(func_data) = self.ctx.functions.get(func.as_str()) else {
             return Ok(None);
         };
         self.consume();
@@ -1319,7 +1319,7 @@ impl<'a> Parser<'a> {
         {
             return Err(ParseError::with_token(
                 ParseErrorKind::FunctionMissingArguments {
-                    func: func.to_owned(),
+                    func: func.to_owned_string(),
                     context: name.to_owned(),
                 },
                 &token,
@@ -1327,7 +1327,7 @@ impl<'a> Parser<'a> {
         } else if self.mode == Mode::Text && !func_data.allowed_in_text {
             return Err(ParseError::with_token(
                 ParseErrorKind::FunctionDisallowedInMode {
-                    func: func.to_owned(),
+                    func: func.to_owned_string(),
                     mode: Mode::Text,
                 },
                 &token,
@@ -1335,22 +1335,28 @@ impl<'a> Parser<'a> {
         } else if self.mode == Mode::Math && !func_data.allowed_in_math {
             return Err(ParseError::with_token(
                 ParseErrorKind::FunctionDisallowedInMode {
-                    func: func.to_owned(),
+                    func: func.to_owned_string(),
                     mode: Mode::Math,
                 },
                 &token,
             ));
         }
 
-        let (args, opt_args) = self.parse_arguments(func, func_data)?;
-        let node = self.call_function(func, args, opt_args, Some(&token), break_on_token_text)?;
+        let (args, opt_args) = self.parse_arguments(func.as_str(), func_data)?;
+        let node = self.call_function(
+            func.as_str(),
+            args,
+            opt_args,
+            Some(&token),
+            break_on_token_text,
+        )?;
         Ok(Some(node))
     }
 
     /// Parse symbol at current token
     fn parse_symbol(&mut self) -> Result<Option<ParseNode>, ParseError> {
         let nucleus = self.fetch()?.clone();
-        let mut text = nucleus.text.clone();
+        let mut text = nucleus.text.to_owned_string();
 
         // Handle \verb commands
         if let Some(arg) = text.strip_prefix("\\verb")
@@ -1557,7 +1563,7 @@ impl<'a> Parser<'a> {
         name: &str, // For error reporting.
     ) -> Result<ParseNode, ParseError> {
         let symbol_token = self.fetch()?.clone();
-        let symbol = symbol_token.text.clone();
+        let symbol = symbol_token.text.to_owned_string();
         self.consume();
         self.consume_spaces()?; // ignore spaces before sup/subscript argument
 

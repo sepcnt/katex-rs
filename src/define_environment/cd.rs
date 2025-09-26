@@ -141,7 +141,7 @@ pub fn parse_cd(parser: &mut Parser) -> Result<AnyParseNode, ParseError> {
         parser.gullet.end_group()?;
         parser.gullet.begin_group();
 
-        let next_text = parser.fetch()?.text.clone();
+        let next_text = parser.fetch()?.text.to_owned_string();
         if next_text == "&" || next_text == "\\\\" {
             parser.consume();
         } else if next_text == "\\end" {

@@ -170,7 +170,7 @@ impl<'a> MacroExpander<'a> {
     /// Expand the next token only once if possible
     fn expand_once_internal(&mut self, expandable_only: bool) -> Result<Option<isize>, ParseError> {
         let top_token = self.pop_token()?;
-        let name = top_token.text.clone();
+        let name = top_token.text.to_owned_string();
         let expansion = if top_token.noexpand == Some(true) {
             None
         } else {
@@ -217,7 +217,7 @@ impl<'a> MacroExpander<'a> {
                         i -= 2;
                         continue;
                     } else if tok.text.len() == 1
-                        && let Ok(parsed) = tok.text.parse::<usize>()
+                        && let Ok(parsed) = tok.text.as_str().parse::<usize>()
                     {
                         let arg_index = parsed - 1;
                         // replace placeholder (#n) with arg tokens
@@ -384,7 +384,7 @@ impl<'a> MacroContextInterface<'a> for MacroExpander<'a> {
                     )
                 })?;
                 if token.treat_as_relax == Some(true) {
-                    "\\relax".clone_into(&mut token.text);
+                    token.set_text("\\relax");
                 }
                 return Ok(token);
             }
@@ -402,7 +402,12 @@ impl<'a> MacroContextInterface<'a> for MacroExpander<'a> {
 
     fn expand_macro_as_text(&mut self, name: &str) -> Result<Option<String>, ParseError> {
         self.expand_macro(name)?.map_or(Ok(None), |tokens| {
-            Ok(Some(tokens.into_iter().map(|t| t.text).collect::<String>()))
+            Ok(Some(
+                tokens
+                    .into_iter()
+                    .map(|t| String::from(t.text))
+                    .collect::<String>(),
+            ))
         })
     }
 

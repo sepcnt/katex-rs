@@ -37,19 +37,19 @@ fn get_hlines(parser: &mut Parser) -> Result<Vec<bool>, ParseError> {
     let mut hline_info = Vec::new();
     parser.gullet.consume_spaces()?;
 
-    let mut nxt = parser.fetch()?.text.clone();
+    let mut nxt = parser.fetch()?.text.to_owned_string();
     if nxt == "\\relax" {
         // \relax is an artifact of the \cr macro below
         parser.consume();
         parser.gullet.consume_spaces()?;
-        nxt.clone_from(&parser.fetch()?.text);
+        parser.fetch()?.text.clone_into(&mut nxt);
     }
 
     while nxt == "\\hline" || nxt == "\\hdashline" {
         parser.consume();
         hline_info.push(nxt == "\\hdashline");
         parser.gullet.consume_spaces()?;
-        nxt.clone_from(&parser.fetch()?.text);
+        parser.fetch()?.text.clone_into(&mut nxt);
     }
 
     Ok(hline_info)
@@ -193,7 +193,7 @@ pub fn parse_array(
         });
 
         let (cell, row_immut) = push_and_get_ref(row, cell);
-        let next = parser.fetch()?.text.clone();
+        let next = parser.fetch()?.text.to_owned_string();
 
         match next.as_str() {
             "&" => {
@@ -1207,7 +1207,7 @@ pub fn define_array(ctx: &mut KatexContext) {
                 if context.parser.fetch()?.text == "[" {
                     context.parser.consume();
                     context.parser.gullet.consume_spaces()?;
-                    col_align.clone_from(&context.parser.fetch()?.text);
+                    context.parser.fetch()?.text.clone_into(&mut col_align);
                     if !["l", "c", "r"].contains(&col_align.as_str()) {
                         return Err(ParseError::new("Expected l or c or r"));
                     }
@@ -1216,7 +1216,7 @@ pub fn define_array(ctx: &mut KatexContext) {
                     let next = context.parser.fetch()?;
                     if next.text != "]" {
                         return Err(ParseError::new(ParseErrorKind::ExpectedClosingBracket {
-                            found: next.text.clone(),
+                            found: next.text.to_owned_string(),
                         }));
                     }
                     context.parser.consume();

@@ -42,7 +42,7 @@ fn define_math_open(ctx: &mut KatexContext) {
             if token.text != close_token.as_ref() {
                 return Err(ParseError::new(ParseErrorKind::ExpectedToken {
                     expected: close_token.as_ref().to_owned(),
-                    found: token.text.clone(),
+                    found: token.text.to_owned_string(),
                 }));
             }
             context.parser.consume();

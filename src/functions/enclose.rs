@@ -361,7 +361,7 @@ fn html_builder(
     let mut img = enclose_span(&inner, label, top_pad, bottom_pad, options);
 
     // Apply border styles
-    if label.contains("fbox") || label.contains("colorbox") || label.contains("boxed") {
+    if label.contains("fbox") || label.contains("boxed") || label.contains("fcolorbox") {
         img.style
             .insert(CssProperty::BorderStyle, "solid".to_owned());
         img.style

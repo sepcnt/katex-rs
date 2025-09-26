@@ -37,9 +37,9 @@ fn html_builder(
     let ParseNode::Spacing(spacing_node) = node else {
         return Err(ParseError::new("Expected spacing node"));
     };
-    REGULAR_SPACE.get(&spacing_node.text).map_or_else(
+    REGULAR_SPACE.get(spacing_node.text.as_str()).map_or_else(
         || {
-            CSS_SPACE.get(&spacing_node.text).map_or_else(
+            CSS_SPACE.get(spacing_node.text.as_str()).map_or_else(
                 || {
                     Err(ParseError::new(ParseErrorKind::UnknownSpaceType {
                         name: spacing_node.text.clone(),

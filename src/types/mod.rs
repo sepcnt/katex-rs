@@ -21,7 +21,7 @@ use strum::FromRepr;
 
 mod tokens;
 pub use crate::symbols::Mode;
-pub use tokens::Token;
+pub use tokens::{Token, TokenText};
 
 mod settings;
 pub use settings::{
