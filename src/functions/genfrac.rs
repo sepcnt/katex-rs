@@ -18,6 +18,14 @@ use crate::units::make_em;
 use crate::{KatexContext, build_html, build_mathml, make_line_span};
 use phf::Map;
 
+fn delim_from_value(delim: &str) -> Option<String> {
+    if delim.is_empty() || delim == "." {
+        None
+    } else {
+        Some(delim.to_owned())
+    }
+}
+
 const INFIX_REPLACE_MAP: Map<&'static str, &'static str> = phf::phf_map! {
     "\\over" => "\\frac",
     "\\choose" => "\\binom",
@@ -82,7 +90,7 @@ pub fn define_genfrac(ctx: &mut crate::KatexContext) {
                     (Some("(".to_owned()), Some(")".to_owned()), false)
                 }
                 "\\\\atopfrac" => (None, None, false),
-                "\\\\bracefrac" => (Some("{".to_owned()), Some("}".to_owned()), false),
+                "\\\\bracefrac" => (Some(r"\{".to_owned()), Some(r"\}".to_owned()), false),
                 "\\\\brackfrac" => (Some("[".to_owned()), Some("]".to_owned()), false),
                 _ => {
                     return Err(ParseError::new(
@@ -228,13 +236,17 @@ pub fn define_genfrac(ctx: &mut crate::KatexContext) {
                 ));
             };
 
+            let has_bar_line = bar_size
+                .as_ref()
+                .is_some_and(|measurement| measurement.number > 0.0);
+
             Ok(ParseNode::Genfrac(Box::new(ParseNodeGenfrac {
                 mode: context.parser.mode,
                 loc: context.loc(),
                 continued: false,
                 numer: Box::new(numer),
                 denom: Box::new(denom),
-                has_bar_line: true,
+                has_bar_line,
                 left_delim: None,
                 right_delim: None,
                 size: None,
@@ -268,22 +280,24 @@ pub fn define_genfrac(ctx: &mut crate::KatexContext) {
             // Handle left delimiter
             let left_node = normalize_argument(&args[0]);
             let left_delim = match left_node {
-                ParseNode::Atom(node) if node.family == Atom::Open => Some(node.text.clone()),
+                ParseNode::Atom(node) if node.family == Atom::Open => delim_from_value(&node.text),
                 _ => None,
             };
 
             // Handle right delimiter
             let right_node = normalize_argument(&args[1]);
             let right_delim = match right_node {
-                ParseNode::Atom(node) if node.family == Atom::Close => Some(node.text.clone()),
+                ParseNode::Atom(node) if node.family == Atom::Close => delim_from_value(&node.text),
                 _ => None,
             };
 
             // Handle bar size
+            let mut has_bar_line = true;
             let bar_size = if let ParseNode::Size(size_node) = &args[2] {
                 if size_node.is_blank {
                     None
                 } else {
+                    has_bar_line = size_node.value.number > 0.0;
                     Some(size_node.value.clone())
                 }
             } else {
@@ -311,9 +325,7 @@ pub fn define_genfrac(ctx: &mut crate::KatexContext) {
 
             match &args[3] {
                 ParseNode::OrdGroup(ord_group) => {
-                    if ord_group.body.len() > 1
-                        && let ParseNode::TextOrd(text_ord) = &ord_group.body[0]
-                    {
+                    if let Some(ParseNode::TextOrd(text_ord)) = ord_group.body.first() {
                         size = Some(convert_style(&text_ord.text)?);
                     }
                 }
@@ -329,7 +341,7 @@ pub fn define_genfrac(ctx: &mut crate::KatexContext) {
                 continued: false,
                 numer: Box::new(numer),
                 denom: Box::new(denom),
-                has_bar_line: true,
+                has_bar_line,
                 left_delim,
                 right_delim,
                 size,
