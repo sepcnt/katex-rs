@@ -7,7 +7,7 @@
 //! This function by itself doesn't do anything but prevent a soft line break.
 
 use crate::build_common::make_fragment;
-use crate::define_function::{FunctionContext, FunctionDefSpec, FunctionPropSpec};
+use crate::define_function::{FunctionContext, FunctionDefSpec, FunctionPropSpec, ord_argument};
 use crate::dom_tree::HtmlDomNode;
 use crate::mathml_tree::{MathDomNode, MathNode, MathNodeType};
 use crate::options::Options;
@@ -28,12 +28,12 @@ pub fn define_hbox(ctx: &mut KatexContext) {
             ..Default::default()
         },
         handler: Some(|context: FunctionContext, args, _opt_args| {
-            let body = args[0].clone();
+            let body = ord_argument(&args[0]);
 
             Ok(AnyParseNode::Hbox(ParseNodeHbox {
                 mode: context.parser.mode,
                 loc: context.loc(),
-                body: vec![body],
+                body,
             }))
         }),
         html_builder: Some(html_builder),
