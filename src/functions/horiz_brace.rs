@@ -48,8 +48,6 @@ pub fn html_builder(
     options: &Options,
     ctx: &KatexContext,
 ) -> Result<HtmlDomNode, ParseError> {
-    let style = options.style;
-
     // Pull out the `ParseNode<"horizBrace">` if `grp` is a "supsub" node.
     let (group, sup_sub_group) = match node {
         ParseNode::SupSub(supsub) => {
@@ -61,25 +59,28 @@ pub fn html_builder(
                 return Err(ParseError::new("Expected HorizBrace node in SupSub base"));
             };
 
-            let sup_sub_group = if let Some(sup) = &supsub.sup {
+            let style = options.style;
+            let sup_group = if let Some(sup) = &supsub.sup {
+                let sup_options = options.having_style(style.sup());
                 Some(build_html::build_group(
                     ctx,
                     sup,
-                    &options.having_style(style.sup()),
+                    &sup_options,
                     Some(options),
                 )?)
             } else if let Some(sub) = &supsub.sub {
+                let sub_options = options.having_style(style.sub());
                 Some(build_html::build_group(
                     ctx,
                     sub,
-                    &options.having_style(style.sub()),
+                    &sub_options,
                     Some(options),
                 )?)
             } else {
                 None
             };
 
-            (group, sup_sub_group)
+            (group, sup_group)
         }
         ParseNode::HorizBrace(hb) => (hb, None),
         _ => return Err(ParseError::new("Expected HorizBrace node or SupSub node")),

@@ -1928,14 +1928,23 @@ pub struct ParseNodeLap {
 
 /// Alignment options for overlapping content.
 #[derive(Debug, Clone, PartialEq, Eq, AsRefStr)]
-#[strum(serialize_all = "lowercase")]
 pub enum LapAlignment {
     /// Align left
+    #[strum(serialize = "llap")]
     Left,
     /// Align center
+    #[strum(serialize = "clap")]
     Center,
     /// Align right
+    #[strum(serialize = "rlap")]
     Right,
+}
+
+impl LapAlignment {
+    /// Returns the CSS class used by KaTeX for this alignment variant.
+    pub fn css_class(&self) -> &str {
+        self.as_ref()
+    }
 }
 
 /// Represents left-right delimiter pairs in mathematical expressions.
