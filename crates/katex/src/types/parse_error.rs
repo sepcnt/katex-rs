@@ -49,7 +49,7 @@ pub struct ParseError {
 impl ParseError {
     /// Create a new ParseError with the given kind
     pub fn new<T: Into<ParseErrorKind>>(kind: T) -> Self {
-        Self::from_kind(kind.into(), ParseErrorContext::None, None, None)
+        Self::from(kind.into())
     }
 
     /// Create a new ParseError with context from a Token or ParseNode
@@ -90,6 +90,12 @@ impl ParseError {
 impl From<strum::ParseError> for ParseError {
     fn from(err: strum::ParseError) -> Self {
         Self::new(ParseErrorKind::EnumParse(err))
+    }
+}
+
+impl From<ParseErrorKind> for ParseError {
+    fn from(kind: ParseErrorKind) -> Self {
+        Self::from_kind(kind, ParseErrorContext::None, None, None)
     }
 }
 
@@ -201,25 +207,12 @@ pub enum ParseErrorKind {
     FunctionMissingArguments { func: String, context: String },
     #[error("Can't use function {func} in {mode:?} mode")]
     FunctionDisallowedInMode { func: String, mode: Mode },
-    #[error("Expected parsing to fail for '{expression}'")]
-    ExpectedParseFailure { expression: String },
-    #[error("Expected building to fail for '{expression}'")]
-    ExpectedBuildFailure { expression: String },
-    #[error("DOM mismatch between '{left_expr}' and '{right_expr}':\n{left_dom}\n\n{right_dom}")]
-    DomMismatch {
-        left_expr: String,
-        right_expr: String,
-        left_dom: String,
-        right_dom: String,
-    },
-    #[error("Expected HTML rendering to fail for '{expression}', but it succeeded: {html}")]
-    ExpectedHtmlFailure { expression: String, html: String },
     #[error("Undefined control sequence: {name}")]
     UndefinedControlSequence { name: String },
     #[error("Unexpected end of input in a macro argument, expected '{expected}'")]
     UnexpectedEndOfMacroArgument { expected: String },
-    #[error("Invalid {context}: '{value}'")]
-    InvalidValue { context: String, value: String },
+    #[error("Invalid color: '{color}'")]
+    InvalidColor { color: String },
     #[error("Expected group as {context}")]
     ExpectedGroupAs { context: String },
     #[error("\\limits must follow a base")]
@@ -572,7 +565,13 @@ impl ErrorLocationProvider for Option<AnyParseNode> {
 /// Convert ParseNodeError to ParseError
 impl From<ParseNodeError> for ParseError {
     fn from(err: ParseNodeError) -> Self {
-        Self::new(ParseErrorKind::from(err))
+        ParseErrorKind::from(err).into()
+    }
+}
+
+impl From<fmt::Error> for ParseError {
+    fn from(_: fmt::Error) -> Self {
+        ParseErrorKind::MarkupWriteFailure.into()
     }
 }
 

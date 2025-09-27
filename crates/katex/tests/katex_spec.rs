@@ -3149,9 +3149,10 @@ fn a_parser_error() {
     it("should report the position of an error", || {
         let result = get_parsed_strict(r"\sqrt}");
         match result {
-            Err(e) => {
+            Err(TestError::Parse(e)) => {
                 assert_eq!(e.position, Some(5));
             }
+            Err(other) => panic!("Expected ParseError, got {other}"),
             Ok(_) => panic!("Expected error"),
         }
         Ok(())
@@ -3669,7 +3670,7 @@ fn parse_error_properties() {
         || {
             match get_parsed_strict("1 + \\fraq{}{}") {
                 Ok(_) => panic!("Expected parse error"),
-                Err(e) => {
+                Err(TestError::Parse(e)) => {
                     assert_eq!(e.position, Some(4)); // After "1 + "
                     assert_eq!(e.length, Some(5)); // "\\fraq"
                     assert_eq!(
@@ -3677,6 +3678,7 @@ fn parse_error_properties() {
                         "KaTeX parse error: Undefined control sequence: \\fraq at position 5: 1 + \\̲f̲r̲a̲q̲{}{}"
                     );
                 }
+                Err(other) => panic!("Expected ParseError, got {other}"),
             }
             Ok(())
         },
@@ -3687,7 +3689,7 @@ fn parse_error_properties() {
         || {
             match get_parsed_strict("\\frac{}") {
                 Ok(_) => panic!("Expected parse error"),
-                Err(e) => {
+                Err(TestError::Parse(e)) => {
                     assert_eq!(e.position, Some(7));
                     assert_eq!(e.length, Some(0));
                     assert_eq!(
@@ -3695,6 +3697,7 @@ fn parse_error_properties() {
                         "KaTeX parse error: Unexpected end of input in a macro argument, expected '}' at end of input: \\frac{}"
                     );
                 }
+                Err(other) => panic!("Expected ParseError, got {other}"),
             }
             Ok(())
         },
@@ -3705,7 +3708,7 @@ fn parse_error_properties() {
         || {
             match get_parsed_strict("\\verb|hello\nworld|") {
                 Ok(_) => panic!("Expected parse error"),
-                Err(e) => {
+                Err(TestError::Parse(e)) => {
                     assert_eq!(e.position, None);
                     assert_eq!(e.length, None);
                     assert_eq!(
@@ -3713,6 +3716,7 @@ fn parse_error_properties() {
                         "KaTeX parse error: \\verb ended by end of line instead of matching delimiter"
                     );
                 }
+                Err(other) => panic!("Expected ParseError, got {other}"),
             }
             Ok(())
         },

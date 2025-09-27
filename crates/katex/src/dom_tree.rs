@@ -454,12 +454,8 @@ pub fn to_markup(node: &HtmlDomNode) -> Result<String, ParseError> {
     node.to_markup()
 }
 
-fn fmt_error() -> ParseError {
-    ParseError::new(ParseErrorKind::MarkupWriteFailure)
-}
-
 fn map_fmt(result: fmt::Result) -> Result<(), ParseError> {
-    result.map_err(|_| fmt_error())
+    result.map_err(ParseError::from)
 }
 
 fn write_node_class<W: fmt::Write>(writer: &mut W, classes: &[String]) -> fmt::Result {
@@ -1059,9 +1055,7 @@ fn node_attributes_to_markup<W: fmt::Write>(
             if attr.contains(|c: char| {
                 c.is_whitespace() || "\"'>/=".contains(c) || ('\x00'..='\x1f').contains(&c)
             }) {
-                return Err(ParseError::new(ParseErrorKind::InvalidAttributeName {
-                    attr: attr.clone(),
-                }));
+                return Err(ParseErrorKind::InvalidAttributeName { attr: attr.clone() }.into());
             }
             map_fmt(write!(writer, " {attr}=\""))?;
             map_fmt(escape_into(writer, value))?;

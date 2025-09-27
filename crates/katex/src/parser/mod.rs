@@ -914,13 +914,14 @@ impl<'a> Parser<'a> {
     /// Parse a group using a validation function, similar to Parser.js
     /// parseRegexGroup. This is a general version that takes a validation
     /// function instead of regex.
-    fn parse_regex_group<F>(
+    fn parse_regex_group<F, K>(
         &mut self,
-        mode_name: &str,
         mut validator: F,
+        build_error: K,
     ) -> Result<Token, ParseError>
     where
         F: FnMut(&str) -> bool,
+        K: Fn(String) -> ParseErrorKind,
     {
         let first_token = self.fetch()?.clone();
         let mut last_token = first_token.clone();
@@ -940,13 +941,8 @@ impl<'a> Parser<'a> {
         }
 
         if str.is_empty() {
-            return Err(ParseError::with_token(
-                ParseErrorKind::InvalidValue {
-                    context: mode_name.to_owned(),
-                    value: first_token.text.to_owned_string(),
-                },
-                &first_token,
-            ));
+            let value = first_token.text.to_owned_string();
+            return Err(ParseError::with_token(build_error(value), &first_token));
         }
 
         // Create a new token with the combined text
@@ -996,10 +992,7 @@ impl<'a> Parser<'a> {
         let is_6hex = text.len() == 6 && text.chars().all(|c| c.is_ascii_hexdigit());
         if !(is_letters || is_hash3 || is_hash6 || is_6hex) {
             return Err(ParseError::with_token(
-                ParseErrorKind::InvalidValue {
-                    context: "color".to_owned(),
-                    value: text,
-                },
+                ParseErrorKind::InvalidColor { color: text },
                 &tok,
             ));
         }
@@ -1022,52 +1015,55 @@ impl<'a> Parser<'a> {
     ) -> Result<Option<ParseNodeSize>, ParseError> {
         self.gullet.consume_spaces()?;
         let res = if !optional && self.gullet.future_mut()?.text != "{" {
-            Some(self.parse_regex_group("size", |s| {
-                let t = s.trim();
-                let rest = if t.starts_with('+') || t.starts_with('-') {
-                    &t[1..]
-                } else {
-                    t
-                };
-                let rest = rest.trim_start();
-                if rest.is_empty() {
-                    return true;
-                }
-                // Try to match number: \d+ | \d+\.\d* | \.\d*
-                let bytes = rest.as_bytes();
-                let mut i = 0;
-                let mut saw_digit = false;
-                while i < bytes.len() && bytes[i].is_ascii_digit() {
-                    saw_digit = true;
-                    i += 1;
-                }
-                if i < bytes.len() && bytes[i] == b'.' {
-                    i += 1;
+            Some(self.parse_regex_group(
+                |s| {
+                    let t = s.trim();
+                    let rest = if t.starts_with('+') || t.starts_with('-') {
+                        &t[1..]
+                    } else {
+                        t
+                    };
+                    let rest = rest.trim_start();
+                    if rest.is_empty() {
+                        return true;
+                    }
+                    // Try to match number: \d+ | \d+\.\d* | \.\d*
+                    let bytes = rest.as_bytes();
+                    let mut i = 0;
+                    let mut saw_digit = false;
                     while i < bytes.len() && bytes[i].is_ascii_digit() {
+                        saw_digit = true;
                         i += 1;
                     }
-                } else if !saw_digit {
-                    if bytes[0] == b'.' {
-                        i = 1;
+                    if i < bytes.len() && bytes[i] == b'.' {
+                        i += 1;
                         while i < bytes.len() && bytes[i].is_ascii_digit() {
                             i += 1;
                         }
-                    } else {
-                        return false;
+                    } else if !saw_digit {
+                        if bytes[0] == b'.' {
+                            i = 1;
+                            while i < bytes.len() && bytes[i].is_ascii_digit() {
+                                i += 1;
+                            }
+                        } else {
+                            return false;
+                        }
                     }
-                }
-                let after_num = &rest[i..];
-                let after_num_trim = after_num.trim_start();
-                let mut j = 0;
-                while j < 2
-                    && j < after_num_trim.len()
-                    && after_num_trim.as_bytes()[j].is_ascii_lowercase()
-                {
-                    j += 1;
-                }
-                let remaining = &after_num_trim[j..];
-                remaining.trim().is_empty()
-            })?)
+                    let after_num = &rest[i..];
+                    let after_num_trim = after_num.trim_start();
+                    let mut j = 0;
+                    while j < 2
+                        && j < after_num_trim.len()
+                        && after_num_trim.as_bytes()[j].is_ascii_lowercase()
+                    {
+                        j += 1;
+                    }
+                    let remaining = &after_num_trim[j..];
+                    remaining.trim().is_empty()
+                },
+                |value| ParseErrorKind::InvalidSize { size: value },
+            )?)
         } else {
             self.parse_string_group("size", optional)?
         };
