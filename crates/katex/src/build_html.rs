@@ -453,10 +453,10 @@ impl PrevTracker {
             PrevNodeState::Located(_) => {
                 let root_ref = &*root;
                 if let Some(prev_path) = find_prev_nonspace_path(root_ref, current_path) {
-                    self.state = PrevNodeState::Located(prev_path.clone());
-                    if let Some((current, prev)) =
-                        two_nodes_mut_by_path(root, current_path, prev_path.as_slice())
-                    {
+                    let prev_slice = prev_path.as_slice();
+                    let nodes = two_nodes_mut_by_path(root, current_path, prev_slice);
+                    self.state = PrevNodeState::Located(prev_path);
+                    if let Some((current, prev)) = nodes {
                         f(current, prev)
                     } else {
                         Ok(None)
@@ -560,6 +560,7 @@ fn traverse_non_space_nodes(
         let current_index = frames[frame_index].index;
         let mut current_path = frames[frame_index].path.clone();
         current_path.push(current_index);
+        let container_path_len = current_path.len().saturating_sub(1);
 
         let is_partial_group = {
             let Some(node_ref) = node_ref_by_path(root, &current_path) else {
@@ -597,34 +598,35 @@ fn traverse_non_space_nodes(
             if let Some(new_node) = result {
                 if let Some(prev_path) = prev.prev_path() {
                     if let Some((last, parent)) = prev_path.split_last() {
-                        let parent_path = parent.to_vec();
-                        let inserted_pos = last + 1;
+                        let inserted_pos = *last + 1;
+                        let container_path_slice = &current_path[..container_path_len];
                         let (actual_path, actual_index) =
-                            insert_into_container(root, &parent_path, inserted_pos, new_node);
+                            insert_into_container(root, parent, inserted_pos, new_node);
+                        let same_container = actual_path.as_slice() == container_path_slice;
                         adjust_frame_paths(&mut frames, actual_path.as_slice(), actual_index);
                         prev.adjust_for_insert(actual_path.as_slice(), actual_index);
-                        if actual_path == frames[frame_index].path && actual_index <= current_index
-                        {
+                        if same_container && actual_index <= current_index {
                             skip_inserted += 1;
                         }
                     } else {
-                        let container_path = frames[frame_index].path.clone();
+                        let container_path_slice = &current_path[..container_path_len];
                         let (actual_path, actual_index) =
-                            insert_into_container(root, &container_path, 0, new_node);
+                            insert_into_container(root, container_path_slice, 0, new_node);
+                        let same_container = actual_path.as_slice() == container_path_slice;
                         adjust_frame_paths(&mut frames, actual_path.as_slice(), actual_index);
                         prev.adjust_for_insert(actual_path.as_slice(), actual_index);
-                        if actual_path == frames[frame_index].path && actual_index <= current_index
-                        {
+                        if same_container && actual_index <= current_index {
                             skip_inserted += 1;
                         }
                     }
                 } else {
-                    let container_path = frames[frame_index].path.clone();
+                    let container_path_slice = &current_path[..container_path_len];
                     let (actual_path, actual_index) =
-                        insert_into_container(root, &container_path, 0, new_node);
+                        insert_into_container(root, container_path_slice, 0, new_node);
+                    let same_container = actual_path.as_slice() == container_path_slice;
                     adjust_frame_paths(&mut frames, actual_path.as_slice(), actual_index);
                     prev.adjust_for_insert(actual_path.as_slice(), actual_index);
-                    if actual_path == frames[frame_index].path && actual_index <= current_index {
+                    if same_container && actual_index <= current_index {
                         skip_inserted += 1;
                     }
                 }
@@ -637,9 +639,7 @@ fn traverse_non_space_nodes(
             *last += skip_inserted;
         }
 
-        if nonspace {
-            prev.set_located(NodePath::new(current_path.clone()));
-        } else if is_root {
+        if !nonspace && is_root {
             let is_newline = node_ref_by_path(root, &current_path)
                 .is_some_and(|node_ref| node_ref.has_class("newline"));
             if is_newline {
@@ -647,6 +647,10 @@ fn traverse_non_space_nodes(
                     build_common::make_span(vec!["leftmost".to_owned()], vec![], None, None).into(),
                 );
             }
+        }
+
+        if nonspace {
+            prev.set_located(NodePath::new(current_path));
         }
 
         frames[frame_index].index = current_index + 1 + skip_inserted;
