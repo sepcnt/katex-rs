@@ -3,7 +3,6 @@
 //! and helper operations.
 
 use core::fmt;
-use core::ops::{Deref, DerefMut};
 
 /// Converts a camelCase string to hyphen-case.
 ///
@@ -242,38 +241,6 @@ pub fn push_and_get_mut<T>(vec: &mut Vec<T>, value: T) -> &mut T {
     vec.push(value);
     let idx = vec.len() - 1;
     &mut vec[idx]
-}
-
-/// A type that can either own a value or borrow a mutable reference to it.
-pub enum OwnedOrMut<'a, T> {
-    /// An owned value with its index in the original collection.
-    Owned {
-        /// The index of the owned value in the original collection.
-        idx: usize,
-        /// The owned value.
-        val: T,
-    },
-    /// A mutable reference to a value.
-    Borrowed(&'a mut T),
-}
-
-impl<T> Deref for OwnedOrMut<'_, T> {
-    type Target = T;
-    fn deref(&self) -> &Self::Target {
-        match self {
-            OwnedOrMut::Owned { val: arr, .. } => arr,
-            OwnedOrMut::Borrowed(r) => r,
-        }
-    }
-}
-
-impl<T> DerefMut for OwnedOrMut<'_, T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        match self {
-            OwnedOrMut::Owned { val: arr, .. } => arr,
-            OwnedOrMut::Borrowed(r) => r,
-        }
-    }
 }
 
 /// Sets a panic hook for better error messages in WebAssembly.

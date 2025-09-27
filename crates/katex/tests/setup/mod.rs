@@ -516,7 +516,7 @@ pub fn get_built(expr: &str, settings: &Settings) -> Result<Vec<HtmlDomNode>, Pa
         return Err(ParseError::new("Expected second child to be a DomSpan"));
     };
     let mut children = Vec::new();
-    for child in &built_html.children {
+    for child in built_html.children.iter() {
         if let HtmlDomNode::DomSpan(span) = child {
             for grandchild in &span.children {
                 if !grandchild.classes().contains(&"strut".to_string()) {
