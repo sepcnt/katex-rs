@@ -181,93 +181,101 @@ fn html_builder(
         }
     }
 
-    let supsub = if let (Some(sup_elem), Some(sub_elem)) = (&super_m, &sub_m) {
-        // Both superscript and subscript
-        super_shift = super_shift
-            .max(min_sup_shift)
-            .max(0.25f64.mul_add(metrics.x_height, sup_elem.depth()));
-        sub_shift = sub_shift.max(metrics.sub2);
+    let supsub = match (super_m.take(), sub_m.take(), margin_left) {
+        (Some(super_elem), Some(sub_elem), margin_left) => {
+            // Both superscript and subscript
+            let sup_depth = super_elem.depth();
+            let sub_height = sub_elem.height();
 
-        let rule_width = metrics.default_rule_thickness;
+            super_shift = super_shift
+                .max(min_sup_shift)
+                .max(0.25f64.mul_add(metrics.x_height, sup_depth));
+            sub_shift = sub_shift.max(metrics.sub2);
 
-        // Rule 18e
-        let max_width = 4.0 * rule_width;
-        if (super_shift - sup_elem.depth()) - (sub_elem.height() - sub_shift) < max_width {
-            sub_shift = max_width - (super_shift - sup_elem.depth()) + sub_elem.height();
-            let psi = 0.8f64.mul_add(metrics.x_height, -(super_shift - sup_elem.depth()));
-            if psi > 0.0 {
-                super_shift += psi;
-                sub_shift -= psi;
+            let rule_width = metrics.default_rule_thickness;
+
+            // Rule 18e
+            let max_width = 4.0 * rule_width;
+            if (super_shift - sup_depth) - (sub_height - sub_shift) < max_width {
+                sub_shift = max_width - (super_shift - sup_depth) + sub_height;
+                let psi = 0.8f64.mul_add(metrics.x_height, -(super_shift - sup_depth));
+                if psi > 0.0 {
+                    super_shift += psi;
+                    sub_shift -= psi;
+                }
             }
-        }
 
-        make_v_list(
-            VListParam::IndividualShift {
-                children: vec![
-                    VListElemAndShift {
-                        elem: sub_elem.clone(),
-                        shift: sub_shift,
+            make_v_list(
+                VListParam::IndividualShift {
+                    children: vec![
+                        VListElemAndShift {
+                            elem: sub_elem,
+                            shift: sub_shift,
+                            margin_left,
+                            margin_right: Some(margin_right.clone()),
+                            wrapper_classes: None,
+                            wrapper_style: None,
+                        },
+                        VListElemAndShift {
+                            elem: super_elem,
+                            shift: -super_shift,
+                            margin_left: None,
+                            margin_right: Some(margin_right),
+                            wrapper_classes: None,
+                            wrapper_style: None,
+                        },
+                    ],
+                },
+                options,
+            )?
+        }
+        (None, Some(sub_elem), margin_left) => {
+            // Rule 18b
+            let sub_height = sub_elem.height();
+            sub_shift = sub_shift
+                .max(metrics.sub1)
+                .max(0.8f64.mul_add(-metrics.x_height, sub_height));
+
+            make_v_list(
+                VListParam::Shift {
+                    position_data: sub_shift,
+                    children: vec![VListChild::Elem(Box::new(VListElem {
+                        elem: sub_elem,
+                        shift: None,
                         margin_left,
-                        margin_right: Some(margin_right.clone()),
+                        margin_right: Some(margin_right),
                         wrapper_classes: None,
                         wrapper_style: None,
-                    },
-                    VListElemAndShift {
-                        elem: sup_elem.clone(),
-                        shift: -super_shift,
+                    }))],
+                },
+                options,
+            )?
+        }
+        (Some(sup_elem), None, _) => {
+            // Rule 18c, d
+            let sup_depth = sup_elem.depth();
+            super_shift = super_shift
+                .max(min_sup_shift)
+                .max(0.25f64.mul_add(metrics.x_height, sup_depth));
+
+            make_v_list(
+                VListParam::Shift {
+                    position_data: -super_shift,
+                    children: vec![VListChild::Elem(Box::new(VListElem {
+                        elem: sup_elem,
+                        shift: None,
                         margin_left: None,
                         margin_right: Some(margin_right),
                         wrapper_classes: None,
                         wrapper_style: None,
-                    },
-                ],
-            },
-            options,
-        )?
-    } else if let Some(sub_elem) = &sub_m {
-        // Rule 18b
-        sub_shift = sub_shift
-            .max(metrics.sub1)
-            .max(0.8f64.mul_add(-metrics.x_height, sub_elem.height()));
-
-        let vlist_elem = vec![VListChild::Elem(Box::new(VListElem {
-            elem: sub_elem.clone(),
-            shift: None,
-            margin_left,
-            margin_right: Some(margin_right),
-            wrapper_classes: None,
-            wrapper_style: None,
-        }))];
-
-        make_v_list(
-            VListParam::Shift {
-                position_data: sub_shift,
-                children: vlist_elem,
-            },
-            options,
-        )?
-    } else if let Some(sup_elem) = &super_m {
-        // Rule 18c, d
-        super_shift = super_shift
-            .max(min_sup_shift)
-            .max(0.25f64.mul_add(metrics.x_height, sup_elem.depth()));
-
-        make_v_list(
-            VListParam::Shift {
-                position_data: -super_shift,
-                children: vec![VListChild::Elem(Box::new(VListElem {
-                    elem: sup_elem.clone(),
-                    shift: None,
-                    margin_left: None,
-                    margin_right: Some(margin_right),
-                    wrapper_classes: None,
-                    wrapper_style: None,
-                }))],
-            },
-            options,
-        )?
-    } else {
-        return Err(ParseError::new(ParseErrorKind::SupSubMissingSupOrSub));
+                    }))],
+                },
+                options,
+            )?
+        }
+        (None, None, _) => {
+            return Err(ParseError::new(ParseErrorKind::SupSubMissingSupOrSub));
+        }
     };
 
     // Wrap the supsub vlist in a span.msupsub to reset text-align.
