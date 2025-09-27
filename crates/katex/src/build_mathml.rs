@@ -5,6 +5,7 @@
 //! in XML.
 
 use crate::namespace::KeyMap;
+use core::mem;
 use strum::IntoDiscriminant as _;
 
 use crate::ParseError;
@@ -329,118 +330,92 @@ pub fn build_expression(
     }
 
     // Use MathDomNodeEnum internally for better performance
-    let mut groups_enum: Vec<MathDomNode> = Vec::new();
-    let mut last_group: Option<MathDomNode> = None;
+    let mut groups_enum: Vec<MathDomNode> = Vec::with_capacity(expression.len());
 
     for node in expression {
-        let group = build_group(ctx, node, options)?;
+        let mut group = build_group(ctx, node, options)?;
 
-        if let (Some(last), Some(current)) = (&last_group, group.as_math_node())
-            && let Some(last_math) = last.as_math_node()
-        {
-            // Concatenate adjacent <mtext> elements
-            if current.node_type == MathNodeType::Mtext
-                && last_math.node_type == MathNodeType::Mtext
+        if let Some(mut last_group) = groups_enum.pop() {
+            let mut repush_last = true;
+            let mut push_current = true;
+
+            if let (Some(last_math), Some(current_math)) =
+                (last_group.as_math_node_mut(), group.as_math_node_mut())
             {
-                let mathvariant_match = current.attributes.get("mathvariant")
-                    == last_math.attributes.get("mathvariant");
-                if mathvariant_match {
-                    let mut new_last = last_math.clone();
-                    new_last.children.extend(current.children.clone());
-                    groups_enum.pop();
-                    groups_enum.push(MathDomNode::Math(new_last.clone()));
-                    last_group = Some(MathDomNode::Math(new_last));
-                    continue;
-                }
-            }
-            // Concatenate adjacent <mn> elements
-            // Concatenate <mn> followed by number punctuation
-            else if (is_number_punctuation(Some(current))
-                || current.node_type == MathNodeType::Mn)
-                && last_math.node_type == MathNodeType::Mn
-            {
-                let mut new_last = last_math.clone();
-                new_last.children.extend(current.children.clone());
-                groups_enum.pop();
-                groups_enum.push(MathDomNode::Math(new_last.clone()));
-                last_group = Some(MathDomNode::Math(new_last));
-                continue;
-            }
-            // Concatenate number punctuation followed by <mn>
-            else if current.node_type == MathNodeType::Mn
-                && is_number_punctuation(Some(last_math))
-            {
-                let mut new_current = current.clone();
-                new_current.children = last_math
-                    .children
-                    .iter()
-                    .cloned()
-                    .chain(current.children.iter().cloned())
-                    .collect();
-                groups_enum.pop();
-                groups_enum.push(MathDomNode::Math(new_current.clone()));
-                last_group = Some(MathDomNode::Math(new_current));
-                continue;
-            }
-            // Handle msup/msub with preceding mn or punctuation
-            else if (current.node_type == MathNodeType::Msup
-                || current.node_type == MathNodeType::Msub)
-                && !current.children.is_empty()
-                && (last_math.node_type == MathNodeType::Mn
-                    || is_number_punctuation(Some(last_math)))
-            {
-                if let Some(base) = current.children.first()
-                    && let Some(base_math) = base.as_math_node()
-                    && base_math.node_type == MathNodeType::Mn
+                // Concatenate adjacent <mtext> elements
+                if current_math.node_type == MathNodeType::Mtext
+                    && last_math.node_type == MathNodeType::Mtext
                 {
-                    let mut new_base = base_math.clone();
-                    new_base.children = last_math
-                        .children
-                        .iter()
-                        .cloned()
-                        .chain(base_math.children.iter().cloned())
-                        .collect();
-                    let mut new_current = current.clone();
-                    new_current.children[0] = new_base.into();
-                    groups_enum.pop();
-                    groups_enum.push(MathDomNode::Math(new_current.clone()));
-                    last_group = Some(MathDomNode::Math(new_current));
-                    continue;
+                    let mathvariant_match = current_math.attributes.get("mathvariant")
+                        == last_math.attributes.get("mathvariant");
+                    if mathvariant_match {
+                        last_math.children.append(&mut current_math.children);
+                        push_current = false;
+                    }
                 }
-            }
-            // Handle \not combining with operators
-            else if last_math.node_type == MathNodeType::Mi
-                && last_math.children.len() == 1
-                && let Some(last_child) = last_math.children.first()
-                && let Some(text_node) = last_child.as_text_node()
-                && text_node.text == "\u{0338}"
-            {
-                // Combining long solidus
-                if (current.node_type == MathNodeType::Mo
-                    || current.node_type == MathNodeType::Mi
-                    || current.node_type == MathNodeType::Mn)
-                    && let Some(child) = current.children.first()
-                    && let Some(text_child) = child.as_text_node()
+                // Concatenate adjacent <mn> elements
+                // Concatenate <mn> followed by number punctuation
+                else if (is_number_punctuation(Some(&*current_math))
+                    || current_math.node_type == MathNodeType::Mn)
+                    && last_math.node_type == MathNodeType::Mn
+                {
+                    last_math.children.append(&mut current_math.children);
+                    push_current = false;
+                }
+                // Concatenate number punctuation followed by <mn>
+                else if current_math.node_type == MathNodeType::Mn
+                    && is_number_punctuation(Some(&*last_math))
+                {
+                    let prefix = mem::take(&mut last_math.children);
+                    current_math.children.splice(0..0, prefix);
+                    repush_last = false;
+                }
+                // Handle msup/msub with preceding mn or punctuation
+                else if (current_math.node_type == MathNodeType::Msup
+                    || current_math.node_type == MathNodeType::Msub)
+                    && !current_math.children.is_empty()
+                    && (last_math.node_type == MathNodeType::Mn
+                        || is_number_punctuation(Some(&*last_math)))
+                {
+                    if let Some(base) = current_math.children.first_mut()
+                        && let Some(base_math) = base.as_math_node_mut()
+                        && base_math.node_type == MathNodeType::Mn
+                    {
+                        let mut prefix = mem::take(&mut last_math.children);
+                        prefix.append(&mut base_math.children);
+                        base_math.children = prefix;
+                        repush_last = false;
+                    }
+                }
+                // Handle \not combining with operators
+                else if last_math.node_type == MathNodeType::Mi
+                    && last_math.children.len() == 1
+                    && let Some(last_child) = last_math.children.first()
+                    && let Some(text_node) = last_child.as_text_node()
+                    && text_node.text == "\u{0338}"
+                    && (current_math.node_type == MathNodeType::Mo
+                        || current_math.node_type == MathNodeType::Mi
+                        || current_math.node_type == MathNodeType::Mn)
+                    && let Some(child) = current_math.children.first_mut()
+                    && let Some(text_child) = child.as_text_node_mut()
                     && !text_child.text.is_empty()
                     && let Some(first_char) = text_child.text.chars().next()
                 {
-                    let mut new_text = text_child.text.clone();
-                    let first_char_len = first_char.len_utf8();
-                    new_text.insert(first_char_len, '\u{0338}');
-                    let mut new_child = text_child.clone();
-                    new_child.text = new_text;
-                    let mut new_current = current.clone();
-                    new_current.children[0] = new_child.into();
-                    groups_enum.pop();
-                    groups_enum.push(MathDomNode::Math(new_current.clone()));
-                    last_group = Some(MathDomNode::Math(new_current));
-                    continue;
+                    let insert_pos = first_char.len_utf8();
+                    text_child.text.insert(insert_pos, '\u{0338}');
+                    repush_last = false;
                 }
             }
-        }
 
-        groups_enum.push(group.clone());
-        last_group = Some(group);
+            if repush_last {
+                groups_enum.push(last_group);
+            }
+            if push_current {
+                groups_enum.push(group);
+            }
+        } else {
+            groups_enum.push(group);
+        }
     }
 
     Ok(groups_enum)
