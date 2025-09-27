@@ -377,12 +377,12 @@ fn html_builder(
             nc = inrow.len();
         }
 
-        let mut outrow: Vec<VListElemAndShift> = Vec::with_capacity(inrow.len());
+        let mut row_elements: Vec<Option<HtmlDomNode>> = Vec::with_capacity(inrow.len());
         for group in inrow {
             let elt = build_html::build_group(ctx, group, options, None)?;
             depth = depth.max(elt.depth());
             height = height.max(elt.height());
-            outrow.push(VListElemAndShift::builder().elem(elt).shift(0.0).build());
+            row_elements.push(Some(elt));
         }
 
         let row_gap = array_node.row_gaps.get(r);
@@ -407,10 +407,8 @@ fn html_builder(
             depth += jot;
         }
 
-        let elements: Vec<HtmlDomNode> = outrow.into_iter().map(|e| e.elem).collect();
-
         body.push(Outrow {
-            elements,
+            elements: row_elements,
             height,
             depth,
             pos: total_height + height,
@@ -562,10 +560,12 @@ fn html_builder(
         }
 
         let mut col_elements = Vec::new();
-        for row in body.iter().take(nr) {
-            if let Some(elem) = row.elements.get(c) {
+        for row in body.iter_mut().take(nr) {
+            if let Some(slot) = row.elements.get_mut(c) {
+                let Some(mut elem) = slot.take() else {
+                    continue;
+                };
                 let shift = row.pos - offset;
-                let mut elem = elem.clone();
                 if let Some(height_mut) = elem.height_mut() {
                     *height_mut = row.height;
                 }
@@ -684,7 +684,7 @@ fn html_builder(
 #[derive(Debug, Clone)]
 struct Outrow {
     // Equivalent to `[idx: number]: *` in Javascript
-    elements: Vec<HtmlDomNode>,
+    elements: Vec<Option<HtmlDomNode>>,
     height: f64,
     depth: f64,
     pos: f64,

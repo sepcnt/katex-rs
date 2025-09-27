@@ -148,7 +148,7 @@ pub fn make_small_delim(
     let mut span = style_wrap(text.into(), style, options, classes);
 
     if center {
-        span = center_span(&span, options, TEXT);
+        span = center_span(span, options, TEXT);
     }
 
     Ok(span)
@@ -192,14 +192,14 @@ pub fn make_large_delim(
     );
 
     if center {
-        span = center_span(&span, options, TEXT);
+        span = center_span(span, options, TEXT);
     }
 
     Ok(span)
 }
 
 /// Center a span around the axis
-fn center_span(span: &DomSpan, options: &Options, style: &'static Style) -> DomSpan {
+fn center_span(mut span: DomSpan, options: &Options, style: &'static Style) -> DomSpan {
     let new_options = options.having_base_style(Some(style));
     let shift = (1.0 - options.size_multiplier / new_options.size_multiplier)
         * options.font_metrics().axis_height;
@@ -207,7 +207,6 @@ fn center_span(span: &DomSpan, options: &Options, style: &'static Style) -> DomS
     // Apply the shift to center the span around the axis
     // In KaTeX.js, this modifies the span's style to apply vertical positioning
     // We'll create a modified span with the vertical shift applied
-    let mut span = span.clone();
     span.classes.push("delimcenter".to_owned());
     span.height -= shift;
     span.depth += shift;
