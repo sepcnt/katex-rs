@@ -11,39 +11,36 @@ use crate::KatexContext;
 use crate::options::Options;
 use crate::spacing_data::Measurement;
 use crate::types::{ParseError, ParseErrorKind};
+use phf::phf_set;
+
+const RELATIVE_UNITS: phf::Set<&'static str> = phf_set!("ex", "em", "mu");
 
 /// Return TeX points per unit for absolute TeX units.
 /// See KaTeX src/units.js `ptPerUnit` for reference values.
-fn pt_per_unit<T>(unit: &T) -> Option<f64>
-where
-    T: AsRef<str>,
-{
-    match unit.as_ref() {
-        // https://en.wikibooks.org/wiki/LaTeX/Lengths
-        // https://tex.stackexchange.com/a/8263
-        "pt" => Some(1.0),             // TeX point
-        "mm" => Some(7227.0 / 2540.0), // millimeter
-        "cm" => Some(7227.0 / 254.0),  // centimeter
-        "in" => Some(72.27),           // inch
-        // https://tex.stackexchange.com/a/41371
-        "bp" | "px" => Some(803.0 / 800.0), // big (PostScript) points
-        // \pdfpxdimen defaults to 1 bp in pdfTeX and LuaTeX
-        "pc" => Some(12.0),             // pica
-        "dd" => Some(1238.0 / 1157.0),  // didot
-        "cc" => Some(14856.0 / 1157.0), // cicero (12 didot)
-        "nd" => Some(685.0 / 642.0),    // new didot
-        "nc" => Some(1370.0 / 107.0),   // new cicero (12 new didot)
-        "sp" => Some(1.0 / 65536.0),    // scaled point (TeX's internal smallest unit)
-        _ => None,
-    }
-}
+const PT_PER_UNIT: phf::Map<&'static str, f64> = phf::phf_map! {
+    // https://en.wikibooks.org/wiki/LaTeX/Lengths
+    // https://tex.stackexchange.com/a/8263
+    "pt" => 1.0,             // TeX point
+    "mm" => 7227.0 / 2540.0, // millimeter
+    "cm" => 7227.0 / 254.0,  // centimeter
+    "in" => 72.27,           // inch
+    // https://tex.stackexchange.com/a/41371
+    "bp" | "px" => 803.0 / 800.0, // big (PostScript) points
+    // \pdfpxdimen defaults to 1 bp in pdfTeX and LuaTeX
+    "pc" => 12.0,             // pica
+    "dd" => 1238.0 / 1157.0,  // didot
+    "cc" => 14856.0 / 1157.0, // cicero (12 didot)
+    "nd" => 685.0 / 642.0,    // new didot
+    "nc" => 1370.0 / 107.0,   // new cicero (12 new didot)
+    "sp" => 1.0 / 65536.0,    // scaled point (TeX's internal smallest unit)
+};
 
 /// Check whether a unit string is a valid length unit understood by KaTeX.
 pub fn valid_unit_str<T>(unit: T) -> bool
 where
     T: AsRef<str>,
 {
-    pt_per_unit(&unit).is_some() || matches!(unit.as_ref(), "ex" | "em" | "mu")
+    PT_PER_UNIT.contains_key(unit.as_ref()) || RELATIVE_UNITS.contains(unit.as_ref())
 }
 
 /// Check whether a measurement has a valid unit.
@@ -70,7 +67,7 @@ impl KatexContext {
     {
         let mut scale: f64;
 
-        if let Some(pt) = pt_per_unit(&size.unit) {
+        if let Some(pt) = PT_PER_UNIT.get(size.unit.as_ref()) {
             // Absolute units. Convert unit -> pt -> em, then unscale absolute to current
             // size.
             let metrics = self.get_global_metrics(options.size as f64);

@@ -9,7 +9,7 @@
 //! parser's token stream, which is not available through the current
 //! FunctionContext API.
 
-use phf::phf_map;
+use phf::{phf_map, phf_set};
 
 use crate::context::KatexContext;
 use crate::define_function::{FunctionContext, FunctionDefSpec, FunctionPropSpec};
@@ -41,6 +41,13 @@ const GLOBAL_MAP: phf::Map<&str, &str> = phf_map!(
     "\\let" => "\\\\globallet",
     "\\futurelet" => "\\\\globalfuture",
 );
+
+const RESERVED_CONTROL_SEQUENCE_NAMES: phf::Set<&str> =
+    phf_set!("\\", "{", "}", "$", "&", "#", "^", "_", "EOF");
+
+const GLOBAL_DEFINITION_COMMANDS: phf::Set<&str> = phf_set!("\\gdef", "\\xdef");
+
+const EXPANDABLE_DEFINITION_COMMANDS: phf::Set<&str> = phf_set!("\\edef", "\\xdef");
 
 /// Register the \global prefix command
 fn define_global(ctx: &mut KatexContext) {
@@ -97,10 +104,7 @@ fn define_def_cmd(ctx: &mut KatexContext) {
         handler: Some(|context: FunctionContext, _args, _opt_args| {
             let name_tok = context.parser.gullet.pop_token()?;
             let name = name_tok.text.to_owned_string();
-            if matches!(
-                name.as_str(),
-                "\\" | "{" | "}" | "$" | "&" | "#" | "^" | "_" | "EOF"
-            ) {
+            if RESERVED_CONTROL_SEQUENCE_NAMES.contains(name.as_str()) {
                 return Err(ParseError::with_token(
                     ParseErrorKind::ExpectedControlSequence,
                     &name_tok,
@@ -174,8 +178,8 @@ fn define_def_cmd(ctx: &mut KatexContext) {
                 tokens.insert(0, ins);
             }
 
-            let global = matches!(context.func_name.as_str(), "\\gdef" | "\\xdef");
-            if matches!(context.func_name.as_str(), "\\edef" | "\\xdef") {
+            let global = GLOBAL_DEFINITION_COMMANDS.contains(context.func_name.as_str());
+            if EXPANDABLE_DEFINITION_COMMANDS.contains(context.func_name.as_str()) {
                 tokens = context.parser.gullet.expand_tokens(tokens)?;
                 tokens.reverse();
             }
@@ -216,10 +220,7 @@ fn define_let_cmd(ctx: &mut KatexContext) {
         handler: Some(|context: FunctionContext, _args, _opt_args| {
             let name_tok = context.parser.gullet.pop_token()?;
             let name = name_tok.text.to_owned_string();
-            if matches!(
-                name.as_str(),
-                "\\" | "{" | "}" | "$" | "&" | "#" | "^" | "_" | "EOF"
-            ) {
+            if RESERVED_CONTROL_SEQUENCE_NAMES.contains(name.as_str()) {
                 return Err(ParseError::with_token(
                     ParseErrorKind::ExpectedControlSequence,
                     &name_tok,
@@ -289,10 +290,7 @@ fn define_futurelet_cmd(ctx: &mut KatexContext) {
         handler: Some(|context: FunctionContext, _args, _opt_args| {
             let name_tok = context.parser.gullet.pop_token()?;
             let name = name_tok.text.to_owned_string();
-            if matches!(
-                name.as_str(),
-                "\\" | "{" | "}" | "$" | "&" | "#" | "^" | "_" | "EOF"
-            ) {
+            if RESERVED_CONTROL_SEQUENCE_NAMES.contains(name.as_str()) {
                 return Err(ParseError::with_token(
                     ParseErrorKind::ExpectedControlSequence,
                     &name_tok,
