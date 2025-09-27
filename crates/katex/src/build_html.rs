@@ -1052,7 +1052,7 @@ pub fn build_html(
             // Write the line except the newline
             let newline = parts
                 .pop()
-                .ok_or_else(|| ParseError::new("newline node should be the last pushed element"))?;
+                .ok_or_else(|| ParseError::new(ParseErrorKind::NewlineNodeNotFound))?;
             if !parts.is_empty() {
                 let mut chunk = Vec::with_capacity(parts.len());
                 chunk.append(&mut parts);

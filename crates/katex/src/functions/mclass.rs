@@ -14,7 +14,7 @@ use crate::parser::parse_node::{
     AnyParseNode, NodeType, ParseNode, ParseNodeMclass, ParseNodeOp, ParseNodeSupSub,
 };
 use crate::symbols::Atom;
-use crate::types::ParseError;
+use crate::types::{ParseError, ParseErrorKind};
 use crate::{KatexContext, build_html, build_mathml};
 
 /// Determines the math class for binrel spacing based on the argument node.
@@ -58,7 +58,9 @@ fn html_builder(
     ctx: &KatexContext,
 ) -> Result<HtmlDomNode, ParseError> {
     let ParseNode::Mclass(mclass_node) = node else {
-        return Err(ParseError::new("Expected Mclass node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Mclass,
+        }));
     };
 
     let elements = build_html::build_expression(
@@ -84,7 +86,9 @@ fn mathml_builder(
     ctx: &KatexContext,
 ) -> Result<MathDomNode, ParseError> {
     let ParseNode::Mclass(mclass_node) = node else {
-        return Err(ParseError::new("Expected Mclass node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Mclass,
+        }));
     };
 
     let inner = build_mathml::build_expression(ctx, &mclass_node.body, options, None)?;

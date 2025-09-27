@@ -11,7 +11,7 @@ use crate::mathml_tree::{MathDomNode, MathNode, MathNodeType, TextNode};
 use crate::options::Options;
 use crate::parser::parse_node::{NodeType, ParseNode, ParseNodeVerb};
 use crate::style::TEXT;
-use crate::types::ParseError;
+use crate::types::{ParseError, ParseErrorKind};
 
 /// Register the \verb function in the KaTeX context.
 pub fn define_verb(ctx: &mut KatexContext) {
@@ -31,9 +31,7 @@ pub fn define_verb(ctx: &mut KatexContext) {
                 // If we end up here, it's because of a failure to match the two delimiters
                 // in the regex in Lexer.js.  LaTeX raises the following error when \verb is
                 // terminated by end of line (or file).
-                Err(ParseError::new(
-                    "\\verb ended by end of line instead of matching delimiter",
-                ))
+                Err(ParseError::new(ParseErrorKind::VerbMissingDelimiter))
             },
         ),
         html_builder: Some(html_builder),
@@ -80,7 +78,9 @@ fn html_builder(
         let span_struct = make_span(classes, body, Some(&new_options), None);
         Ok(HtmlDomNode::DomSpan(span_struct))
     } else {
-        Err(ParseError::new("Expected Verb node"))
+        Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Verb,
+        }))
     }
 }
 
@@ -105,7 +105,9 @@ fn mathml_builder(
 
         Ok(MathDomNode::Math(mtext))
     } else {
-        Err(ParseError::new("Expected Verb node"))
+        Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Verb,
+        }))
     }
 }
 

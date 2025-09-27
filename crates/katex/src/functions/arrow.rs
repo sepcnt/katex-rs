@@ -14,7 +14,7 @@ use crate::options::Options;
 use crate::parser::parse_node::{NodeType, ParseNode, ParseNodeXArrow};
 use crate::stretchy::math_ml_node;
 use crate::stretchy::svg_span;
-use crate::types::ParseError;
+use crate::types::{ParseError, ParseErrorKind};
 use crate::{KatexContext, build_mathml};
 
 /// Extensible arrow commands
@@ -87,7 +87,9 @@ fn html_builder(
     ctx: &KatexContext,
 ) -> Result<HtmlDomNode, ParseError> {
     let ParseNode::XArrow(xarrow) = node else {
-        return Err(ParseError::new("Expected XArrow node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::XArrow,
+        }));
     };
 
     let style = &options.style;
@@ -203,7 +205,9 @@ fn mathml_builder(
     ctx: &KatexContext,
 ) -> Result<MathDomNode, ParseError> {
     let ParseNode::XArrow(xarrow) = node else {
-        return Err(ParseError::new("Expected XArrow node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::XArrow,
+        }));
     };
 
     let mut arrow_node = math_ml_node(&xarrow.label);

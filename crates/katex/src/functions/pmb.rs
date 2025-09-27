@@ -12,7 +12,7 @@ use crate::functions::mclass::binrel_class;
 use crate::mathml_tree::{MathDomNode, MathNode, MathNodeType};
 use crate::options::Options;
 use crate::parser::parse_node::{NodeType, ParseNode, ParseNodePmb};
-use crate::types::{CssProperty, ParseError};
+use crate::types::{CssProperty, ParseError, ParseErrorKind};
 use crate::{KatexContext, build_html, build_mathml};
 
 /// HTML builder for pmb nodes
@@ -22,7 +22,9 @@ fn html_builder(
     ctx: &KatexContext,
 ) -> Result<HtmlDomNode, ParseError> {
     let ParseNode::Pmb(pmb_node) = node else {
-        return Err(ParseError::new("Expected Pmb node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Pmb,
+        }));
     };
 
     let elements = build_html::build_expression(
@@ -48,7 +50,9 @@ fn mathml_builder(
     ctx: &KatexContext,
 ) -> Result<MathDomNode, ParseError> {
     let ParseNode::Pmb(pmb_node) = node else {
-        return Err(ParseError::new("Expected Pmb node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Pmb,
+        }));
     };
 
     let inner = build_mathml::build_expression(ctx, &pmb_node.body, options, None)?;

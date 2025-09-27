@@ -9,7 +9,7 @@ use crate::dom_tree::HtmlDomNode;
 use crate::mathml_tree::MathDomNode;
 use crate::options::Options;
 use crate::parser::parse_node::{AnyParseNode, NodeType, ParseNodeOrdGroup};
-use crate::types::ParseError;
+use crate::types::{ParseError, ParseErrorKind};
 use crate::{KatexContext, build_html, build_mathml, make_fragment};
 
 /// Registers ordgroup functions in the KaTeX context
@@ -41,7 +41,9 @@ fn html_builder(
     ctx: &KatexContext,
 ) -> Result<HtmlDomNode, ParseError> {
     let AnyParseNode::OrdGroup(group) = node else {
-        return Err(ParseError::new("Expected OrdGroup node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::OrdGroup,
+        }));
     };
 
     if group.semisimple.unwrap_or(false) {
@@ -74,7 +76,9 @@ fn mathml_builder(
     ctx: &KatexContext,
 ) -> Result<MathDomNode, ParseError> {
     let AnyParseNode::OrdGroup(group) = node else {
-        return Err(ParseError::new("Expected OrdGroup node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::OrdGroup,
+        }));
     };
 
     let body = build_mathml::build_expression_row(ctx, &group.body, options, Some(true))?;

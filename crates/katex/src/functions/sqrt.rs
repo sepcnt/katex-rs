@@ -13,7 +13,7 @@ use crate::mathml_tree::{MathDomNode, MathNode, MathNodeType};
 use crate::options::Options;
 use crate::parser::parse_node::{NodeType, ParseNode, ParseNodeSqrt};
 use crate::style::{SCRIPTSCRIPT, TEXT};
-use crate::types::{CssProperty, ParseError};
+use crate::types::{CssProperty, ParseError, ParseErrorKind};
 use crate::units::make_em;
 use crate::{KatexContext, build_html, build_mathml};
 
@@ -49,7 +49,9 @@ fn html_builder(
     ctx: &KatexContext,
 ) -> Result<HtmlDomNode, ParseError> {
     let ParseNode::Sqrt(sqrt_node) = node else {
-        return Err(ParseError::new("Expected Sqrt node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Sqrt,
+        }));
     };
 
     // Square roots are handled in the TeXbook pg. 443, Rule 11.
@@ -184,7 +186,9 @@ fn mathml_builder(
     ctx: &KatexContext,
 ) -> Result<MathDomNode, ParseError> {
     let ParseNode::Sqrt(sqrt_node) = node else {
-        return Err(ParseError::new("Expected Sqrt node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Sqrt,
+        }));
     };
 
     let body_group = build_mathml::build_group(ctx, &sqrt_node.body, options)?;

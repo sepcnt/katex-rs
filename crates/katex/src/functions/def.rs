@@ -67,7 +67,7 @@ fn define_global(ctx: &mut KatexContext) {
                 let inner_node = context
                     .parser
                     .parse_function(context.break_on_token_text, None)?
-                    .ok_or_else(|| ParseError::new("Expected function after prefix"))?;
+                    .ok_or_else(|| ParseError::new(ParseErrorKind::ExpectedFunctionAfterPrefix))?;
                 Ok(inner_node)
             } else {
                 Err(ParseError::with_token(
@@ -102,7 +102,7 @@ fn define_def_cmd(ctx: &mut KatexContext) {
                 "\\" | "{" | "}" | "$" | "&" | "#" | "^" | "_" | "EOF"
             ) {
                 return Err(ParseError::with_token(
-                    "Expected a control sequence",
+                    ParseErrorKind::ExpectedControlSequence,
                     &name_tok,
                 ));
             }
@@ -139,11 +139,14 @@ fn define_def_cmd(ctx: &mut KatexContext) {
                             &arg_tok,
                         ));
                     }
-                    let arg_num: usize = arg_tok
-                        .text
-                        .as_str()
-                        .parse()
-                        .map_err(|_| ParseError::with_token("Invalid number", &arg_tok))?;
+                    let arg_num: usize = arg_tok.text.as_str().parse().map_err(|_| {
+                        ParseError::with_token(
+                            ParseErrorKind::InvalidMacroArgumentNumber {
+                                value: arg_tok.text.to_owned_string(),
+                            },
+                            &arg_tok,
+                        )
+                    })?;
                     if arg_num != num_args + 1 {
                         return Err(ParseError::with_token(
                             ParseErrorKind::ExpectedMacroParameter {
@@ -156,7 +159,10 @@ fn define_def_cmd(ctx: &mut KatexContext) {
                     num_args += 1;
                     delimiters.push(Vec::new());
                 } else if tok.text == "EOF" {
-                    return Err(ParseError::with_token("Expected a macro definition", &tok));
+                    return Err(ParseError::with_token(
+                        ParseErrorKind::ExpectedMacroDefinition,
+                        &tok,
+                    ));
                 } else {
                     delimiters[num_args].push(tok.text.to_owned_string());
                 }
@@ -215,7 +221,7 @@ fn define_let_cmd(ctx: &mut KatexContext) {
                 "\\" | "{" | "}" | "$" | "&" | "#" | "^" | "_" | "EOF"
             ) {
                 return Err(ParseError::with_token(
-                    "Expected a control sequence",
+                    ParseErrorKind::ExpectedControlSequence,
                     &name_tok,
                 ));
             }
@@ -288,7 +294,7 @@ fn define_futurelet_cmd(ctx: &mut KatexContext) {
                 "\\" | "{" | "}" | "$" | "&" | "#" | "^" | "_" | "EOF"
             ) {
                 return Err(ParseError::with_token(
-                    "Expected a control sequence",
+                    ParseErrorKind::ExpectedControlSequence,
                     &name_tok,
                 ));
             }

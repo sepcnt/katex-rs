@@ -11,7 +11,7 @@ use crate::dom_tree::HtmlDomNode;
 use crate::mathml_tree::{MathDomNode, MathNode, MathNodeType, TextNode};
 use crate::options::Options;
 use crate::parser::parse_node::{NodeType, ParseNode, ParseNodeUnderline};
-use crate::types::ParseError;
+use crate::types::{ParseError, ParseErrorKind};
 use crate::{KatexContext, build_html, build_mathml};
 
 /// Registers underline function in the KaTeX context
@@ -45,7 +45,9 @@ fn html_builder(
     ctx: &KatexContext,
 ) -> Result<HtmlDomNode, ParseError> {
     let ParseNode::Underline(underline_node) = node else {
-        return Err(ParseError::new("Expected Underline node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Underline,
+        }));
     };
 
     // Build the inner group
@@ -90,7 +92,9 @@ fn mathml_builder(
     ctx: &KatexContext,
 ) -> Result<MathDomNode, ParseError> {
     let ParseNode::Underline(underline_node) = node else {
-        return Err(ParseError::new("Expected Underline node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Underline,
+        }));
     };
 
     let mut operator = MathNode::builder()

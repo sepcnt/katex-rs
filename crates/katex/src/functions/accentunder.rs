@@ -13,7 +13,7 @@ use crate::options::Options;
 use crate::parser::parse_node::{NodeType, ParseNode, ParseNodeAccentUnder};
 use crate::stretchy::{math_ml_node, svg_span};
 use crate::tree::MathDomNode;
-use crate::types::ParseError;
+use crate::types::{ParseError, ParseErrorKind};
 
 /// Under-accent commands
 const UNDER_ACCENTS: &[&str] = &[
@@ -89,7 +89,9 @@ fn html_builder(
         )
         .into())
     } else {
-        Err(ParseError::new("Expected AccentUnder node"))
+        Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::AccentUnder,
+        }))
     }
 }
 
@@ -108,6 +110,8 @@ fn mathml_builder(
             .build();
         Ok(node.into())
     } else {
-        Err(ParseError::new("Expected AccentUnder node"))
+        Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::AccentUnder,
+        }))
     }
 }

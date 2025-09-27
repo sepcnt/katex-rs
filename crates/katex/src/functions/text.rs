@@ -9,7 +9,7 @@ use crate::dom_tree::HtmlDomNode;
 use crate::mathml_tree::MathDomNode;
 use crate::options::{FontShape, FontWeight, Options};
 use crate::parser::parse_node::{NodeType, ParseNode, ParseNodeText};
-use crate::types::{ArgType, Mode, ParseError};
+use crate::types::{ArgType, Mode, ParseError, ParseErrorKind};
 use crate::{build_html, build_mathml};
 use phf::phf_map;
 
@@ -117,7 +117,9 @@ fn html_builder(
     ctx: &crate::KatexContext,
 ) -> Result<HtmlDomNode, ParseError> {
     let ParseNode::Text(group) = node else {
-        return Err(ParseError::new("Expected Text node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Text,
+        }));
     };
 
     let new_options = options_with_font(group, options);
@@ -144,7 +146,9 @@ fn mathml_builder(
     ctx: &crate::KatexContext,
 ) -> Result<MathDomNode, ParseError> {
     let ParseNode::Text(group) = node else {
-        return Err(ParseError::new("Expected Text node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Text,
+        }));
     };
 
     let new_options = options_with_font(group, options);

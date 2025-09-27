@@ -11,7 +11,7 @@ use crate::dom_tree::HtmlDomNode;
 use crate::mathml_tree::MathDomNode;
 use crate::options::Options;
 use crate::parser::parse_node::{NodeType, ParseNode, ParseNodeHtml};
-use crate::types::{ArgType, ErrorLocationProvider, ParseError};
+use crate::types::{ArgType, ErrorLocationProvider, ParseError, ParseErrorKind};
 use crate::{KatexContext, TrustContext, build_html, build_mathml};
 
 /// HTML extension command names
@@ -31,7 +31,11 @@ pub fn define_html(ctx: &mut crate::KatexContext) {
         handler: Some(|context: FunctionContext, args, _opt_args| {
             let value = match &args[0] {
                 ParseNode::Raw(raw) => raw.string.clone(),
-                _ => return Err(ParseError::new("First argument must be raw string")),
+                _ => {
+                    return Err(ParseError::new(
+                        ParseErrorKind::ExpectedRawStringFirstArgument,
+                    ));
+                }
             };
 
             let body = args[1].clone();
@@ -77,7 +81,9 @@ pub fn define_html(ctx: &mut crate::KatexContext) {
                     for part in data_parts {
                         let key_val: Vec<&str> = part.split('=').collect();
                         if key_val.len() != 2 {
-                            return Err(ParseError::new("Error parsing key-value for \\htmlData"));
+                            return Err(ParseError::new(
+                                ParseErrorKind::HtmlDataKeyValueParseError,
+                            ));
                         }
                         let key = format!("data-{}", key_val[0].trim());
                         let val = key_val[1].trim().to_owned();
@@ -90,7 +96,7 @@ pub fn define_html(ctx: &mut crate::KatexContext) {
                     }
                 }
                 _ => {
-                    return Err(ParseError::new("Unrecognized html command"));
+                    return Err(ParseError::new(ParseErrorKind::UnrecognizedHtmlCommand));
                 }
             };
 
@@ -120,7 +126,9 @@ fn html_builder(
     ctx: &KatexContext,
 ) -> Result<HtmlDomNode, ParseError> {
     let ParseNode::Html(html_node) = node else {
-        return Err(ParseError::new("Expected Html node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Html,
+        }));
     };
 
     let elements = build_html::build_expression(
@@ -160,7 +168,9 @@ fn mathml_builder(
     ctx: &KatexContext,
 ) -> Result<MathDomNode, ParseError> {
     let ParseNode::Html(html_node) = node else {
-        return Err(ParseError::new("Expected Html node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Html,
+        }));
     };
 
     let base_group = build_mathml::build_expression_row(ctx, &html_node.body, options, None)?;

@@ -16,7 +16,7 @@ use crate::dom_tree::HtmlDomNode;
 use crate::mathml_tree::{MathDomNode, MathNode, MathNodeType};
 use crate::options::Options;
 use crate::parser::parse_node::{AnyParseNode, NodeType, ParseNode, ParseNodeSmash};
-use crate::types::ParseError;
+use crate::types::{ParseError, ParseErrorKind};
 
 /// Registers the `\smash` function in the KaTeX context.
 ///
@@ -78,7 +78,7 @@ pub fn define_smash(ctx: &mut KatexContext) {
                     }
                 } else {
                     return Err(ParseError::new(
-                        "Optional smash argument must be an ordgroup",
+                        ParseErrorKind::OptionalSmashArgumentMustBeOrdGroup,
                     ));
                 }
             } else {
@@ -109,7 +109,9 @@ fn html_builder(
     ctx: &KatexContext,
 ) -> Result<HtmlDomNode, ParseError> {
     let ParseNode::Smash(smash_node) = node else {
-        return Err(ParseError::new("Expected Smash node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Smash,
+        }));
     };
 
     // Build the base group
@@ -172,7 +174,9 @@ fn mathml_builder(
     ctx: &KatexContext,
 ) -> Result<MathDomNode, ParseError> {
     let ParseNode::Smash(smash_node) = node else {
-        return Err(ParseError::new("Expected Smash node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Smash,
+        }));
     };
 
     // Build the base group

@@ -11,7 +11,7 @@ use crate::dom_tree::HtmlDomNode;
 use crate::mathml_tree::MathDomNode;
 use crate::options::Options;
 use crate::parser::parse_node::{AnyParseNode, NodeType, ParseNode, ParseNodeMathChoice};
-use crate::types::ParseError;
+use crate::types::{ParseError, ParseErrorKind};
 use crate::{build_html, build_mathml};
 
 /// Choose the appropriate math style based on the current style size
@@ -64,7 +64,9 @@ fn html_builder(
     ctx: &crate::KatexContext,
 ) -> Result<HtmlDomNode, ParseError> {
     let ParseNode::MathChoice(group) = node else {
-        return Err(ParseError::new("Expected MathChoice node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::MathChoice,
+        }));
     };
 
     let body = choose_math_style(group, options);
@@ -80,7 +82,9 @@ fn mathml_builder(
     ctx: &crate::KatexContext,
 ) -> Result<MathDomNode, ParseError> {
     let ParseNode::MathChoice(group) = node else {
-        return Err(ParseError::new("Expected MathChoice node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::MathChoice,
+        }));
     };
 
     let body = choose_math_style(group, options);

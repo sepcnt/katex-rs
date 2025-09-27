@@ -13,7 +13,7 @@ use crate::options::Options;
 use crate::parser::parse_node::{
     AnyParseNode, NodeType, ParseNodeHphantom, ParseNodePhantom, ParseNodeVphantom,
 };
-use crate::types::ParseError;
+use crate::types::{ParseError, ParseErrorKind};
 use crate::{build_html, build_mathml};
 
 /// Registers phantom functions in the KaTeX context
@@ -89,7 +89,9 @@ fn html_builder_phantom(
     ctx: &crate::KatexContext,
 ) -> Result<HtmlDomNode, ParseError> {
     let AnyParseNode::Phantom(phantom_node) = node else {
-        return Err(ParseError::new("Expected Phantom node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Phantom,
+        }));
     };
 
     // Build the expression with phantom options
@@ -114,7 +116,9 @@ fn html_builder_hphantom(
     ctx: &crate::KatexContext,
 ) -> Result<HtmlDomNode, ParseError> {
     let AnyParseNode::Hphantom(hphantom_node) = node else {
-        return Err(ParseError::new("Expected Hphantom node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Hphantom,
+        }));
     };
 
     let phantom_options = options.with_phantom();
@@ -160,7 +164,9 @@ fn html_builder_vphantom(
     ctx: &crate::KatexContext,
 ) -> Result<HtmlDomNode, ParseError> {
     let AnyParseNode::Vphantom(vphantom_node) = node else {
-        return Err(ParseError::new("Expected Vphantom node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Vphantom,
+        }));
     };
 
     let phantom_options = options.with_phantom();
@@ -184,7 +190,9 @@ fn mathml_builder_phantom(
     ctx: &crate::KatexContext,
 ) -> Result<MathDomNode, ParseError> {
     let AnyParseNode::Phantom(phantom_node) = node else {
-        return Err(ParseError::new("Expected Phantom node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Phantom,
+        }));
     };
 
     let inner = build_mathml::build_expression(ctx, &phantom_node.body, options, None)?;
@@ -202,7 +210,9 @@ fn mathml_builder_hphantom(
     ctx: &crate::KatexContext,
 ) -> Result<MathDomNode, ParseError> {
     let AnyParseNode::Hphantom(hphantom_node) = node else {
-        return Err(ParseError::new("Expected Hphantom node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Hphantom,
+        }));
     };
 
     let inner =
@@ -232,7 +242,9 @@ fn mathml_builder_vphantom(
     ctx: &crate::KatexContext,
 ) -> Result<MathDomNode, ParseError> {
     let AnyParseNode::Vphantom(vphantom_node) = node else {
-        return Err(ParseError::new("Expected Vphantom node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Vphantom,
+        }));
     };
 
     let inner =

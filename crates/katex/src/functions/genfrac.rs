@@ -200,7 +200,7 @@ pub fn define_genfrac(ctx: &mut crate::KatexContext) {
             let size_measurement = if let ParseNode::Size(size) = size_node {
                 Some(size.value.clone())
             } else {
-                return Err(ParseError::new("\\above argument must be a size"));
+                return Err(ParseError::new(ParseErrorKind::AboveArgumentMustBeSize));
             };
             Ok(ParseNode::Infix(ParseNodeInfix {
                 mode: context.parser.mode,
@@ -232,7 +232,7 @@ pub fn define_genfrac(ctx: &mut crate::KatexContext) {
                 infix.size.clone()
             } else {
                 return Err(ParseError::new(
-                    "\\\\abovefrac second argument must be an Infix node",
+                    ParseErrorKind::AbovefracSecondArgumentNotInfix,
                 ));
             };
 
@@ -360,7 +360,9 @@ fn html_builder(
     ctx: &KatexContext,
 ) -> Result<HtmlDomNode, ParseError> {
     let ParseNode::Genfrac(group) = node else {
-        return Err(ParseError::new("Expected Genfrac node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Genfrac,
+        }));
     };
 
     // Adjust style based on fraction size (like JavaScript version)
@@ -547,7 +549,9 @@ fn mathml_builder(
     ctx: &KatexContext,
 ) -> Result<MathDomNode, ParseError> {
     let ParseNode::Genfrac(genfrac_node) = node else {
-        return Err(ParseError::new("Expected Genfrac node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Genfrac,
+        }));
     };
 
     // Adjust style based on fraction size (like JavaScript version)

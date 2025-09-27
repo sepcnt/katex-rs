@@ -15,7 +15,7 @@ use crate::options::Options;
 use crate::parser::parse_node::{
     AnyParseNode, NodeType, ParseNode, ParseNodeFont, ParseNodeMclass, ParseNodeOrdGroup,
 };
-use crate::types::ParseError;
+use crate::types::{ParseError, ParseErrorKind};
 use crate::{KatexContext, build_html, build_mathml};
 
 /// HTML builder for font nodes
@@ -25,7 +25,9 @@ fn html_builder(
     ctx: &KatexContext,
 ) -> Result<HtmlDomNode, ParseError> {
     let ParseNode::Font(font_node) = node else {
-        return Err(ParseError::new("Expected Font node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Font,
+        }));
     };
 
     let new_options = options.with_font(font_node.font.clone());
@@ -39,7 +41,9 @@ fn mathml_builder(
     ctx: &KatexContext,
 ) -> Result<MathDomNode, ParseError> {
     let ParseNode::Font(font_node) = node else {
-        return Err(ParseError::new("Expected Font node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Font,
+        }));
     };
 
     let new_options = options.with_font(font_node.font.clone());

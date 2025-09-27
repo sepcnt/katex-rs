@@ -12,7 +12,7 @@ use crate::dom_tree::HtmlDomNode;
 use crate::mathml_tree::{MathDomNode, MathNode, MathNodeType};
 use crate::options::Options;
 use crate::parser::parse_node::{AnyParseNode, NodeType, ParseNodeHbox};
-use crate::types::{ArgType, Mode, ParseError};
+use crate::types::{ArgType, Mode, ParseError, ParseErrorKind};
 use crate::{KatexContext, build_html, build_mathml};
 
 /// Registers hbox function in the KaTeX context
@@ -48,7 +48,9 @@ fn html_builder(
     ctx: &KatexContext,
 ) -> Result<HtmlDomNode, ParseError> {
     let AnyParseNode::Hbox(hbox_node) = node else {
-        return Err(ParseError::new("Expected Hbox node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Hbox,
+        }));
     };
 
     let elements = build_html::build_expression(
@@ -68,7 +70,9 @@ fn mathml_builder(
     ctx: &KatexContext,
 ) -> Result<MathDomNode, ParseError> {
     let AnyParseNode::Hbox(hbox_node) = node else {
-        return Err(ParseError::new("Expected Hbox node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Hbox,
+        }));
     };
 
     let children = build_mathml::build_expression(ctx, &hbox_node.body, options, None)?;

@@ -258,7 +258,7 @@ fn make_inner(
     options: &Options,
 ) -> Result<VListChild, ParseError> {
     let Some(first_char) = ch.chars().next() else {
-        return Err(ParseError::new("Delimiter character is empty"));
+        return Err(ParseError::new(ParseErrorKind::EmptyDelimiterCharacter));
     };
     // Get font metrics data
 

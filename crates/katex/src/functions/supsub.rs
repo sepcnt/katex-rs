@@ -16,7 +16,7 @@ use crate::mathml_tree::{MathDomNode, MathNode, MathNodeType};
 use crate::options::Options;
 use crate::parser::parse_node::{AnyParseNode, NodeType, ParseNode, ParseNodeOp, ParseNodeSupSub};
 use crate::style::DISPLAY;
-use crate::types::ParseError;
+use crate::types::{ParseError, ParseErrorKind};
 use crate::units::make_em;
 use crate::{KatexContext, build_html, build_mathml};
 
@@ -76,7 +76,9 @@ fn html_builder(
     ctx: &KatexContext,
 ) -> Result<HtmlDomNode, ParseError> {
     let ParseNode::SupSub(group) = node else {
-        return Err(ParseError::new("Expected SupSub node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::SupSub,
+        }));
     };
 
     // Here is where we defer to the inner group if it should handle
@@ -265,7 +267,7 @@ fn html_builder(
             options,
         )?
     } else {
-        return Err(ParseError::new("supsub must have either sup or sub."));
+        return Err(ParseError::new(ParseErrorKind::SupSubMissingSupOrSub));
     };
 
     // Wrap the supsub vlist in a span.msupsub to reset text-align.
@@ -290,7 +292,9 @@ fn mathml_builder(
     ctx: &KatexContext,
 ) -> Result<MathDomNode, ParseError> {
     let ParseNode::SupSub(group) = node else {
-        return Err(ParseError::new("Expected SupSub node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::SupSub,
+        }));
     };
 
     // Is the inner group a relevant horizontal brace?

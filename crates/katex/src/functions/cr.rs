@@ -15,7 +15,7 @@ use crate::dom_tree::HtmlDomNode;
 use crate::mathml_tree::{MathDomNode, MathNode, MathNodeType};
 use crate::options::Options;
 use crate::parser::parse_node::{NodeType, ParseNode, ParseNodeCr};
-use crate::types::CssProperty;
+use crate::types::{CssProperty, ParseErrorKind};
 use crate::units::make_em;
 
 /// Register the \\ (line break) function
@@ -81,7 +81,9 @@ fn html_builder(
         }
         Ok(span.into())
     } else {
-        Err(ParseError::new("Expected CR node"))
+        Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Cr,
+        }))
     }
 }
 
@@ -116,6 +118,8 @@ fn mathml_builder(
 
         Ok(MathDomNode::Math(math_node))
     } else {
-        Err(ParseError::new("Expected CR node"))
+        Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Cr,
+        }))
     }
 }

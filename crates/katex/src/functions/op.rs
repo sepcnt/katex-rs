@@ -15,7 +15,7 @@ use crate::mathml_tree::{self, MathDomNode, MathNode, MathNodeType, TextNode};
 use crate::options::Options;
 use crate::parser::parse_node::{NodeType, ParseNode, ParseNodeOp};
 use crate::style::DISPLAY;
-use crate::types::{CssProperty, Mode, ParseError};
+use crate::types::{CssProperty, Mode, ParseError, ParseErrorKind};
 use crate::units::make_em;
 use crate::{build_html, build_mathml};
 
@@ -38,11 +38,17 @@ pub fn html_builder(
             {
                 (op_node, super_group, sub_group, true)
             } else {
-                return Err(ParseError::new("Expected Op node in SupSub base"));
+                return Err(ParseError::new(ParseErrorKind::ExpectedSupSubBaseNode {
+                    node: NodeType::Op,
+                }));
             }
         }
         ParseNode::Op(op_node) => (op_node, None, None, false),
-        _ => return Err(ParseError::new("Expected Op or SupSub node")),
+        _ => {
+            return Err(ParseError::new(ParseErrorKind::ExpectedNodeOrSupSub {
+                node: NodeType::Op,
+            }));
+        }
     };
 
     let (symbol, name, body, suppress_base_shift, mode) = match op_node {
@@ -221,7 +227,9 @@ fn mathml_builder(
     ctx: &crate::KatexContext,
 ) -> Result<MathDomNode, ParseError> {
     let ParseNode::Op(op_node) = node else {
-        return Err(ParseError::new("Expected Op node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Op,
+        }));
     };
 
     let (symbol, name, body, parent_is_sup_sub) = match op_node {

@@ -11,7 +11,7 @@ use crate::dom_tree::HtmlDomNode;
 use crate::mathml_tree::{MathDomNode, MathNode, MathNodeType};
 use crate::options::Options;
 use crate::parser::parse_node::{NodeType, ParseNode, ParseNodeVcenter};
-use crate::types::{ArgType, ParseError};
+use crate::types::{ArgType, ParseError, ParseErrorKind};
 use crate::{KatexContext, build_html, build_mathml};
 
 /// Registers the \vcenter function in the KaTeX context
@@ -46,7 +46,9 @@ fn html_builder(
     ctx: &KatexContext,
 ) -> Result<HtmlDomNode, ParseError> {
     let ParseNode::Vcenter(vcenter_node) = node else {
-        return Err(ParseError::new("Expected Vcenter node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Vcenter,
+        }));
     };
 
     // Build the body group
@@ -79,7 +81,9 @@ fn mathml_builder(
     ctx: &KatexContext,
 ) -> Result<MathDomNode, ParseError> {
     let ParseNode::Vcenter(vcenter_node) = node else {
-        return Err(ParseError::new("Expected Vcenter node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Vcenter,
+        }));
     };
 
     // Build the base group

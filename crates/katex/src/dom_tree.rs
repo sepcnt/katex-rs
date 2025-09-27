@@ -455,7 +455,7 @@ pub fn to_markup(node: &HtmlDomNode) -> Result<String, ParseError> {
 }
 
 fn fmt_error() -> ParseError {
-    ParseError::new(ParseErrorKind::Message("failed to write markup"))
+    ParseError::new(ParseErrorKind::MarkupWriteFailure)
 }
 
 fn map_fmt(result: fmt::Result) -> Result<(), ParseError> {

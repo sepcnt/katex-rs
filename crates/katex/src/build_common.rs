@@ -17,7 +17,7 @@ use crate::parser::parse_node::AnyParseNode;
 use crate::spacing_data::Measurement;
 use crate::symbols::{Font, Mode, is_ligature};
 use crate::tree::DocumentFragment;
-use crate::types::{CssProperty, CssStyle};
+use crate::types::{CssProperty, CssStyle, ParseErrorKind};
 use crate::units::make_em;
 use crate::wide_character::get_wide_character_font;
 use bon::bon;
@@ -577,7 +577,7 @@ pub fn lookup_symbol(
         value
             .chars()
             .next()
-            .ok_or_else(|| ParseError::new("Empty string passed to lookup_symbol"))?
+            .ok_or_else(|| ParseError::new(ParseErrorKind::EmptyLookupSymbolInput))?
     };
 
     let metrics = get_character_metrics(ctx, query, font_name, mode)?;
@@ -836,9 +836,7 @@ pub fn make_ord(
         // Spacing use TextOrd type by default
         AnyParseNode::Spacing(spacing) => (spacing.mode, &spacing.text, Mode::Text),
         _ => {
-            return Err(ParseError::new(
-                "make_ord: expected MathOrd, TextOrd or Spacing node",
-            ));
+            return Err(ParseError::new(ParseErrorKind::MakeOrdExpectedNode));
         }
     };
 

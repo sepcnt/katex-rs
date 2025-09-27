@@ -334,9 +334,7 @@ pub fn define_includegraphics(ctx: &mut KatexContext) {
                 let src = if let ParseNode::Url(url_node) = &args[0] {
                     url_node.url.clone()
                 } else {
-                    return Err(ParseError::new(
-                        "Expected URL argument for \\includegraphics",
-                    ));
+                    return Err(ParseError::new(ParseErrorKind::IncludeGraphicsExpectedUrl));
                 };
 
                 // Generate alt text if not provided
@@ -432,7 +430,9 @@ fn html_builder(
 
         Ok(HtmlDomNode::Img(img))
     } else {
-        Err(ParseError::new("Expected Includegraphics node"))
+        Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Includegraphics,
+        }))
     }
 }
 
@@ -462,7 +462,9 @@ fn mathml_builder(
 
         Ok(MathDomNode::Math(math_node))
     } else {
-        Err(ParseError::new("Expected Includegraphics node"))
+        Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Includegraphics,
+        }))
     }
 }
 

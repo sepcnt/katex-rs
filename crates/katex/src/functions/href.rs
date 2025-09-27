@@ -13,7 +13,7 @@ use crate::options::Options;
 use crate::parser::parse_node::{
     AnyParseNode, NodeType, ParseNodeHref, ParseNodeText, ParseNodeTextOrd,
 };
-use crate::types::{ArgType, ParseError, TrustContext};
+use crate::types::{ArgType, ParseError, ParseErrorKind, TrustContext};
 use crate::{build_html, build_mathml};
 
 /// Registers href functions in the KaTeX context
@@ -35,7 +35,11 @@ pub fn define_href(ctx: &mut crate::KatexContext) {
             // Extract URL from the url node
             let href = match url_node {
                 AnyParseNode::Url(url_node) => url_node.url.clone(),
-                _ => return Err(ParseError::new("First argument must be a URL")),
+                _ => {
+                    return Err(ParseError::new(ParseErrorKind::ArgumentMustBeUrl {
+                        context: "First argument",
+                    }));
+                }
             };
 
             let mut trust_ctx = TrustContext {
@@ -46,7 +50,9 @@ pub fn define_href(ctx: &mut crate::KatexContext) {
 
             // Check trust settings
             if !context.parser.settings.is_trusted(&mut trust_ctx) {
-                return Err(ParseError::new("Command \\href not trusted"));
+                return Err(ParseError::new(ParseErrorKind::CommandNotTrusted {
+                    name: "\\href",
+                }));
             }
 
             Ok(AnyParseNode::Href(ParseNodeHref {
@@ -76,7 +82,11 @@ pub fn define_href(ctx: &mut crate::KatexContext) {
             // Extract URL from the url node
             let href = match url_node {
                 AnyParseNode::Url(url_node) => url_node.url.clone(),
-                _ => return Err(ParseError::new("Argument must be a URL")),
+                _ => {
+                    return Err(ParseError::new(ParseErrorKind::ArgumentMustBeUrl {
+                        context: "Argument",
+                    }));
+                }
             };
 
             let mut trust_ctx = TrustContext {
@@ -87,7 +97,9 @@ pub fn define_href(ctx: &mut crate::KatexContext) {
 
             // Check trust settings
             if !context.parser.settings.is_trusted(&mut trust_ctx) {
-                return Err(ParseError::new("Command \\url not trusted"));
+                return Err(ParseError::new(ParseErrorKind::CommandNotTrusted {
+                    name: "\\url",
+                }));
             }
 
             // Process URL characters, replacing ~ with \textasciitilde
@@ -141,7 +153,9 @@ fn html_builder(
     ctx: &crate::KatexContext,
 ) -> Result<HtmlDomNode, ParseError> {
     let AnyParseNode::Href(href_node) = node else {
-        return Err(ParseError::new("Expected Href node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Href,
+        }));
     };
 
     // Build the body content
@@ -161,7 +175,9 @@ fn mathml_builder(
     ctx: &crate::KatexContext,
 ) -> Result<MathDomNode, ParseError> {
     let AnyParseNode::Href(href_node) = node else {
-        return Err(ParseError::new("Expected Href node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Href,
+        }));
     };
 
     // Build the body content

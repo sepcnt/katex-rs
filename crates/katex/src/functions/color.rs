@@ -10,7 +10,7 @@ use crate::macros::{MacroContextInterface as _, MacroDefinition};
 use crate::mathml_tree::{MathDomNode, MathNode, MathNodeType};
 use crate::options::Options;
 use crate::parser::parse_node::{NodeType, ParseNode, ParseNodeColor};
-use crate::types::{ArgType, ParseError};
+use crate::types::{ArgType, ParseError, ParseErrorKind};
 use crate::{KatexContext, build_html, build_mathml};
 
 /// Registers color functions in the KaTeX context
@@ -32,7 +32,11 @@ pub fn define_color(ctx: &mut KatexContext) {
             // Extract color from color-token
             let color = match &color_node {
                 ParseNode::ColorToken(token) => token.color.clone(),
-                _ => return Err(ParseError::new("Expected color-token for color argument")),
+                _ => {
+                    return Err(ParseError::new(ParseErrorKind::ExpectedColorToken {
+                        argument: "color argument",
+                    }));
+                }
             };
 
             // Extract body as AnyParseNode vector
@@ -68,7 +72,11 @@ pub fn define_color(ctx: &mut KatexContext) {
             // Extract color from color-token
             let color = match &color_node {
                 ParseNode::ColorToken(token) => token.color.clone(),
-                _ => return Err(ParseError::new("Expected color-token for color argument")),
+                _ => {
+                    return Err(ParseError::new(ParseErrorKind::ExpectedColorToken {
+                        argument: "color argument",
+                    }));
+                }
             };
 
             // Set macro \current@color in current namespace
@@ -103,7 +111,9 @@ fn html_builder(
     ctx: &KatexContext,
 ) -> Result<HtmlDomNode, ParseError> {
     let ParseNode::Color(color_node) = node else {
-        return Err(ParseError::new("Expected Color node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Color,
+        }));
     };
 
     // Build the expression with the specified color
@@ -130,7 +140,9 @@ fn mathml_builder(
     ctx: &KatexContext,
 ) -> Result<MathDomNode, ParseError> {
     let ParseNode::Color(color_node) = node else {
-        return Err(ParseError::new("Expected Color node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Color,
+        }));
     };
 
     let inner = build_mathml::build_expression(

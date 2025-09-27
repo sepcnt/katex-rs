@@ -506,14 +506,14 @@ pub fn get_built(expr: &str, settings: &Settings) -> Result<Vec<HtmlDomNode>, Pa
         if let Some(HtmlDomNode::DomSpan(first_child)) = root_node.children.get_mut(0) {
             root_node = first_child.clone();
         } else {
-            return Err(ParseError::new("Expected first child to be a DomSpan"));
+            return Err(ParseError::new(ParseErrorKind::ExpectedFirstChildDomSpan));
         }
     }
     let built_html = if let Some(HtmlDomNode::DomSpan(first_child)) = root_node.children.get_mut(1)
     {
         first_child
     } else {
-        return Err(ParseError::new("Expected second child to be a DomSpan"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedSecondChildDomSpan));
     };
     let mut children = Vec::new();
     for child in built_html.children.iter() {

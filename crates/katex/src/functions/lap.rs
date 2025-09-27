@@ -9,7 +9,7 @@ use crate::dom_tree::HtmlDomNode;
 use crate::mathml_tree::{MathDomNode, MathNode, MathNodeType};
 use crate::options::Options;
 use crate::parser::parse_node::{LapAlignment, NodeType, ParseNode, ParseNodeLap};
-use crate::types::{ArgType, CssProperty, ParseError};
+use crate::types::{ArgType, CssProperty, ParseError, ParseErrorKind};
 use crate::units::make_em;
 use crate::{KatexContext, build_html, build_mathml};
 
@@ -26,7 +26,7 @@ pub fn define_lap(ctx: &mut KatexContext) {
         },
         handler: Some(|context: FunctionContext, args, _opt_args| {
             if args.len() != 1 {
-                return Err(ParseError::new("Lap functions require exactly 1 argument"));
+                return Err(ParseError::new(ParseErrorKind::LapRequiresSingleArgument));
             }
 
             let body = args[0].clone();
@@ -56,7 +56,9 @@ fn html_builder(
     ctx: &KatexContext,
 ) -> Result<HtmlDomNode, ParseError> {
     let ParseNode::Lap(lap_node) = node else {
-        return Err(ParseError::new("Expected Lap node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Lap,
+        }));
     };
 
     // Build the base group
@@ -131,7 +133,9 @@ fn mathml_builder(
     ctx: &KatexContext,
 ) -> Result<MathDomNode, ParseError> {
     let ParseNode::Lap(lap_node) = node else {
-        return Err(ParseError::new("Expected Lap node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Lap,
+        }));
     };
 
     // Build the base group

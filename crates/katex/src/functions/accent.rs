@@ -17,7 +17,9 @@ use crate::mathml_tree::{MathDomNode, MathNode, MathNodeType};
 use crate::options::Options;
 use crate::parser::parse_node::{NodeType, ParseNode, ParseNodeAccent, ParseNodeTextOrd};
 use crate::stretchy::{math_ml_node, svg_span};
-use crate::types::{ArgType, CssProperty, CssStyle, ErrorLocationProvider, Mode, ParseError};
+use crate::types::{
+    ArgType, CssProperty, CssStyle, ErrorLocationProvider, Mode, ParseError, ParseErrorKind,
+};
 use crate::units::make_em;
 use crate::{KatexContext, build_html, build_mathml};
 use phf::phf_set;
@@ -181,10 +183,16 @@ pub fn html_builder(
 
                 (group, base, Some(supsub_group))
             } else {
-                return Err(ParseError::new("Expected Accent node in SupSub base"));
+                return Err(ParseError::new(ParseErrorKind::ExpectedSupSubBaseNode {
+                    node: NodeType::Accent,
+                }));
             }
         }
-        _ => return Err(ParseError::new("Expected Accent node or SupSub node")),
+        _ => {
+            return Err(ParseError::new(ParseErrorKind::ExpectedNodeOrSupSub {
+                node: NodeType::Accent,
+            }));
+        }
     };
 
     // Build the base group
@@ -208,7 +216,9 @@ pub fn html_builder(
         if let HtmlDomNode::Symbol(symbol) = base_group {
             symbol.skew
         } else {
-            return Err(ParseError::new("Expected Symbol node for base character"));
+            return Err(ParseError::new(ParseErrorKind::ExpectedSymbolNode {
+                context: "base character",
+            }));
         }
         // Note that we now throw away baseGroup, because the layers we
         // removed with getBaseElem might contain things like \color which
@@ -269,7 +279,9 @@ pub fn html_builder(
             });
             let HtmlDomNode::Symbol(mut accent) = build_common::make_ord(ctx, &ord, options)?
             else {
-                return Err(ParseError::new("Expected Symbol node for accent"));
+                return Err(ParseError::new(ParseErrorKind::ExpectedSymbolNode {
+                    context: "accent",
+                }));
             };
 
             // Remove the italic correction of the accent, because it only serves to
@@ -364,7 +376,9 @@ fn mathml_builder(
     ctx: &KatexContext,
 ) -> Result<MathDomNode, ParseError> {
     let ParseNode::Accent(group) = node else {
-        return Err(ParseError::new("Expected Accent node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Accent,
+        }));
     };
 
     let accent_node = if group.is_stretchy.unwrap_or(false) {

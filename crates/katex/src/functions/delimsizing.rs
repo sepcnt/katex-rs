@@ -139,7 +139,7 @@ pub fn define_leftright(ctx: &mut KatexContext) {
             let Some(AnyParseNode::LeftRightRight(right_node)) =
                 parser.parse_function(None, None)?
             else {
-                return Err(ParseError::new("Expected \\right after \\left"));
+                return Err(ParseError::new(ParseErrorKind::ExpectedRightAfterLeft));
             };
 
             Ok(ParseNode::LeftRight(ParseNodeLeftRight {
@@ -172,9 +172,7 @@ pub fn define_leftright(ctx: &mut KatexContext) {
                 if let Some(s) = color_val.as_str() {
                     Some(s.to_owned())
                 } else {
-                    return Err(ParseError::new(
-                        "\\current@color set to non-string in \\right",
-                    ));
+                    return Err(ParseError::new(ParseErrorKind::CurrentColorMustBeString));
                 }
             } else {
                 None
@@ -204,7 +202,7 @@ pub fn define_middle(ctx: &mut KatexContext) {
         },
         handler: Some(|context: FunctionContext, args, _opt_args| {
             if context.parser.leftright_depth == 0.0 {
-                return Err(ParseError::new("\\middle without preceding \\left"));
+                return Err(ParseError::new(ParseErrorKind::MiddleWithoutPrecedingLeft));
             }
 
             let delim_text = check_delimiter(args.first(), &context)?;
@@ -227,7 +225,9 @@ fn delimsizing_html_builder(
     ctx: &KatexContext,
 ) -> Result<HtmlDomNode, ParseError> {
     let ParseNode::Delimsizing(group) = node else {
-        return Err(ParseError::new("Expected Delimsizing node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Delimsizing,
+        }));
     };
 
     if group.delim == "." {
@@ -254,7 +254,9 @@ fn delimsizing_mathml_builder(
     ctx: &KatexContext,
 ) -> Result<MathDomNode, ParseError> {
     let ParseNode::Delimsizing(group) = node else {
-        return Err(ParseError::new("Expected Delimsizing node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Delimsizing,
+        }));
     };
 
     let children = if group.delim == "." {
@@ -292,7 +294,9 @@ fn leftright_html_builder(
     ctx: &KatexContext,
 ) -> Result<HtmlDomNode, ParseError> {
     let ParseNode::LeftRight(group) = node else {
-        return Err(ParseError::new("Expected LeftRight node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::LeftRight,
+        }));
     };
 
     // Build the inner expression
@@ -400,7 +404,9 @@ fn leftright_mathml_builder(
     ctx: &KatexContext,
 ) -> Result<MathDomNode, ParseError> {
     let ParseNode::LeftRight(group) = node else {
-        return Err(ParseError::new("Expected LeftRight node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::LeftRight,
+        }));
     };
 
     let inner = build_mathml::build_expression(ctx, &group.body, options, None)?;
@@ -448,7 +454,9 @@ fn middle_html_builder(
     ctx: &KatexContext,
 ) -> Result<HtmlDomNode, ParseError> {
     let ParseNode::Middle(group) = node else {
-        return Err(ParseError::new("Expected Middle node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Middle,
+        }));
     };
 
     let mut middle_delim = if group.delim == "." {
@@ -470,7 +478,9 @@ fn middle_mathml_builder(
     ctx: &KatexContext,
 ) -> Result<MathDomNode, ParseError> {
     let ParseNode::Middle(group) = node else {
-        return Err(ParseError::new("Expected Middle node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Middle,
+        }));
     };
 
     // Firefox compatibility: use plain "|" instead of "\vert"

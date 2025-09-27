@@ -9,7 +9,7 @@ use crate::dom_tree::HtmlDomNode;
 use crate::mathml_tree::{MathDomNode, MathNode, MathNodeType};
 use crate::options::Options;
 use crate::parser::parse_node::{NodeType, ParseNode, ParseNodeSizing};
-use crate::types::ParseError;
+use crate::types::{ParseError, ParseErrorKind};
 use crate::units::make_em;
 use crate::{build_html, build_mathml};
 
@@ -85,7 +85,9 @@ fn html_builder(
     ctx: &crate::KatexContext,
 ) -> Result<HtmlDomNode, ParseError> {
     let ParseNode::Sizing(sizing_node) = node else {
-        return Err(ParseError::new("Expected Sizing node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Sizing,
+        }));
     };
 
     // Handle sizing operators like \Huge. Real TeX doesn't actually allow
@@ -102,7 +104,9 @@ fn mathml_builder(
     ctx: &crate::KatexContext,
 ) -> Result<MathDomNode, ParseError> {
     let ParseNode::Sizing(sizing_node) = node else {
-        return Err(ParseError::new("Expected Sizing node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Sizing,
+        }));
     };
 
     let new_options = options.having_size(sizing_node.size);
@@ -135,7 +139,7 @@ pub fn define_sizing(ctx: &mut crate::KatexContext) {
         },
         handler: Some(|context: FunctionContext, args, _opt_args| {
             if !args.is_empty() {
-                return Err(ParseError::new("Sizing functions take no arguments"));
+                return Err(ParseError::new(ParseErrorKind::SizingTakesNoArguments));
             }
 
             let body = context

@@ -11,6 +11,7 @@ use crate::mathml_tree::{MathDomNode, MathNode, MathNodeType};
 use crate::options::Options;
 use crate::parser::parse_node::{AnyParseNode, NodeType};
 use crate::symbols::Atom;
+use crate::types::ParseErrorKind;
 
 /// Registers atom functions in the KaTeX context
 pub fn define_symbols_op(ctx: &mut KatexContext) {
@@ -31,7 +32,11 @@ fn atom_html_builder(
     // Extract text, mode, and family from the node
     let (text, mode, family) = match node {
         AnyParseNode::Atom(atom) => (&atom.text, atom.mode, atom.family),
-        _ => return Err(ParseError::new("Expected Atom node")),
+        _ => {
+            return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+                node: NodeType::Atom,
+            }));
+        }
     };
 
     // Create class name: "m" + family (e.g., "mbin", "mrel", etc.)
@@ -50,7 +55,11 @@ fn atom_mathml_builder(
     // Extract text, mode, and family from the node
     let (text, mode, family) = match node {
         AnyParseNode::Atom(atom) => (&atom.text, atom.mode, atom.family),
-        _ => return Err(ParseError::new("Expected Atom node")),
+        _ => {
+            return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+                node: NodeType::Atom,
+            }));
+        }
     };
 
     // Create the text node

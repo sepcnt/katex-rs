@@ -690,25 +690,37 @@ impl<'a> Parser<'a> {
                             base.limits = lex.text == "\\limits";
                         }
                     } else {
-                        return Err(ParseError::with_token("\\limits must follow a base", &lex));
+                        return Err(ParseError::with_token(
+                            ParseErrorKind::LimitsMustFollowBase,
+                            &lex,
+                        ));
                     }
                     self.consume();
                 }
                 "^" => {
                     if superscript.is_some() {
-                        return Err(ParseError::with_token("Double superscript", &lex));
+                        return Err(ParseError::with_token(
+                            ParseErrorKind::DoubleSuperscript,
+                            &lex,
+                        ));
                     }
                     superscript = Some(self.handle_sup_subscript("superscript")?);
                 }
                 "_" => {
                     if subscript.is_some() {
-                        return Err(ParseError::with_token("Double subscript", &lex));
+                        return Err(ParseError::with_token(
+                            ParseErrorKind::DoubleSubscript,
+                            &lex,
+                        ));
                     }
                     subscript = Some(self.handle_sup_subscript("subscript")?);
                 }
                 "'" => {
                     if superscript.is_some() {
-                        return Err(ParseError::with_token("Double superscript", &lex));
+                        return Err(ParseError::with_token(
+                            ParseErrorKind::DoubleSuperscript,
+                            &lex,
+                        ));
                     }
                     let mut n = 1;
                     self.consume();
@@ -806,7 +818,7 @@ impl<'a> Parser<'a> {
             if let ParseNode::Infix(n) = node {
                 if infix_pos.is_some() {
                     return Err(ParseError::with_token(
-                        "only one infix operator per group",
+                        ParseErrorKind::MultipleInfixOperators,
                         &n.token,
                     ));
                 }
@@ -824,7 +836,7 @@ impl<'a> Parser<'a> {
         let mut numer_body = body;
         let Some(infix_node) = numer_body.pop() else {
             return Err(ParseError::with_token(
-                "infix operator at start of expression",
+                ParseErrorKind::InfixOperatorAtStart,
                 &self.fetch()?.clone(),
             ));
         };
@@ -940,7 +952,7 @@ impl<'a> Parser<'a> {
         // Create a new token with the combined text
         first_token
             .range(last_token, str)
-            .ok_or_else(|| ParseError::new("Failed to create combined token"))
+            .ok_or_else(|| ParseError::new(ParseErrorKind::FailedToCreateCombinedToken))
     }
 
     /// Parse a string group from scan_argument; returns the concatenated token
@@ -1198,7 +1210,9 @@ impl<'a> Parser<'a> {
             }
             Some(ArgType::Primitive) => {
                 if optional {
-                    return Err(ParseError::new("A primitive argument cannot be optional"));
+                    return Err(ParseError::new(
+                        ParseErrorKind::PrimitiveArgumentCannotBeOptional,
+                    ));
                 }
                 if let Some(group) = self.parse_group(name, None)? {
                     Ok(Some(group))
@@ -1369,7 +1383,7 @@ impl<'a> Parser<'a> {
             // Validate that body has matching delimiters
             if body.len() < 2 || body.chars().next() != body.chars().last() {
                 return Err(ParseError::with_token(
-                    "\\verb assertion failed -- please report what input caused this bug",
+                    ParseErrorKind::VerbAssertionFailed,
                     &nucleus,
                 ));
             }
@@ -1653,9 +1667,7 @@ impl<'a> Parser<'a> {
             } else if let Some(a) = arg {
                 args.push(a);
             } else {
-                return Err(ParseError::new(
-                    "Null argument, please report this as a bug",
-                ));
+                return Err(ParseError::new(ParseErrorKind::NullArgument));
             }
         }
 

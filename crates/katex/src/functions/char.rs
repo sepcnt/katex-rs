@@ -24,7 +24,7 @@ pub fn define_char(ctx: &mut KatexContext) {
                 // Extract the first argument, which should be an ordgroup
                 let arg = &args[0];
                 let ParseNode::OrdGroup(ordgroup) = arg else {
-                    return Err(ParseError::new("\\@char argument must be an ordgroup"));
+                    return Err(ParseError::new(ParseErrorKind::CharArgumentMustBeOrdGroup));
                 };
 
                 // Concatenate all text from textord and mathord nodes in the group
@@ -39,7 +39,7 @@ pub fn define_char(ctx: &mut KatexContext) {
                         }
                         _ => {
                             return Err(ParseError::new(
-                                "\\@char ordgroup must contain only textord or mathord nodes",
+                                ParseErrorKind::CharOrdGroupContentInvalid,
                             ));
                         }
                     }

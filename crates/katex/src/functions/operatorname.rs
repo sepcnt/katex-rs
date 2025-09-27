@@ -14,8 +14,7 @@ use crate::options::Options;
 use crate::parser::parse_node::{
     AnyParseNode, NodeType, ParseNode, ParseNodeOperatorName, ParseNodeTextOrd,
 };
-use crate::types::ErrorLocationProvider as _;
-use crate::types::ParseError;
+use crate::types::{ErrorLocationProvider as _, ParseError, ParseErrorKind};
 use crate::{KatexContext, build_html, build_mathml};
 
 fn normalize_symbol_text(node: &mut HtmlDomNode) {
@@ -70,11 +69,17 @@ pub fn html_builder(
             {
                 (op_node, super_group, sub_group, true)
             } else {
-                return Err(ParseError::new("Expected OperatorName node in SupSub base"));
+                return Err(ParseError::new(ParseErrorKind::ExpectedSupSubBaseNode {
+                    node: NodeType::OperatorName,
+                }));
             }
         }
         ParseNode::OperatorName(op_node) => (op_node, None, None, false),
-        _ => return Err(ParseError::new("Expected OperatorName or SupSub node")),
+        _ => {
+            return Err(ParseError::new(ParseErrorKind::ExpectedNodeOrSupSub {
+                node: NodeType::OperatorName,
+            }));
+        }
     };
 
     let body: Vec<AnyParseNode> = operatorname_node
@@ -135,7 +140,9 @@ fn mathml_builder(
     ctx: &KatexContext,
 ) -> Result<MathDomNode, ParseError> {
     let ParseNode::OperatorName(operatorname_node) = node else {
-        return Err(ParseError::new("Expected OperatorName node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::OperatorName,
+        }));
     };
 
     let mut expression = build_mathml::build_expression(

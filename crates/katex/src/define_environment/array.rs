@@ -201,7 +201,7 @@ pub fn parse_array(
                 {
                     if config.single_row || config.col_separation_type.is_some() {
                         // {equation} or {split}
-                        return Err(ParseError::new("Too many tab characters: &"));
+                        return Err(ParseError::new(ParseErrorKind::TooManyTabCharacters));
                     }
                     // {array} environment
                     parser.settings.report_nonstrict(
@@ -311,7 +311,9 @@ fn html_builder(
     ctx: &KatexContext,
 ) -> Result<HtmlDomNode, ParseError> {
     let ParseNode::Array(array_node) = node else {
-        return Err(ParseError::new("Expected Array node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Array,
+        }));
     };
 
     let nr = array_node.body.len();
@@ -717,7 +719,9 @@ fn mathml_builder(
     ctx: &KatexContext,
 ) -> Result<MathDomNode, ParseError> {
     let ParseNode::Array(array_node) = node else {
-        return Err(ParseError::new("Expected Array node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Array,
+        }));
     };
 
     let mut tbl = Vec::new();
@@ -1032,7 +1036,7 @@ const ALIGNED_HANDLER: EnvHandler = |context, args, _opt_args| {
         }
         num_maths = num_str
             .parse::<usize>()
-            .map_err(|_| ParseError::new("Invalid number of columns"))?;
+            .map_err(|_| ParseError::new(ParseErrorKind::InvalidNumberOfColumns))?;
         num_cols = num_maths * 2;
     }
 
@@ -1115,14 +1119,18 @@ pub fn define_array(ctx: &mut KatexContext) {
             } else if let Some(ParseNode::OrdGroup(ord)) = args.first() {
                 ord.body.clone()
             } else {
-                return Err(ParseError::new("Expected ordgroup or symbol node"));
+                return Err(ParseError::new(
+                    ParseErrorKind::ExpectedOrdGroupOrSymbolNode,
+                ));
             };
 
             let cols = colalign
                 .into_iter()
                 .map(|nde| {
                     let Some(ca) = nde.text() else {
-                        return Err(ParseError::new("Expected column alignment character"));
+                        return Err(ParseError::new(
+                            ParseErrorKind::ExpectedColumnAlignmentCharacter,
+                        ));
                     };
 
                     if "lcr|".contains(ca) {
@@ -1223,7 +1231,7 @@ pub fn define_array(ctx: &mut KatexContext) {
                     context.parser.gullet.consume_spaces()?;
                     context.parser.fetch()?.text.clone_into(&mut col_align);
                     if !["l", "c", "r"].contains(&col_align.as_str()) {
-                        return Err(ParseError::new("Expected l or c or r"));
+                        return Err(ParseError::new(ParseErrorKind::ExpectedAlignmentSpecifier));
                     }
                     context.parser.consume();
                     context.parser.gullet.consume_spaces()?;
@@ -1313,14 +1321,18 @@ pub fn define_array(ctx: &mut KatexContext) {
             } else if let Some(ParseNode::OrdGroup(ord)) = args.first() {
                 ord.body.clone()
             } else {
-                return Err(ParseError::new("Expected ordgroup or symbol node"));
+                return Err(ParseError::new(
+                    ParseErrorKind::ExpectedOrdGroupOrSymbolNode,
+                ));
             };
 
             let cols = colalign
                 .into_iter()
                 .map(|nde| {
                     let Some(ca) = nde.text() else {
-                        return Err(ParseError::new("Expected column alignment character"));
+                        return Err(ParseError::new(
+                            ParseErrorKind::ExpectedColumnAlignmentCharacter,
+                        ));
                     };
                     // {subarray} only recognizes "l" & "c"
                     if "lc".contains(ca) {
@@ -1338,7 +1350,9 @@ pub fn define_array(ctx: &mut KatexContext) {
                 .collect::<Result<Vec<_>, _>>()?;
 
             if cols.len() > 1 {
-                return Err(ParseError::new("{subarray} can contain only one column"));
+                return Err(ParseError::new(ParseErrorKind::SubarrayTooManyColumns {
+                    subarray: "{subarray}",
+                }));
             }
 
             let res = parse_array(
@@ -1353,7 +1367,9 @@ pub fn define_array(ctx: &mut KatexContext) {
             )?;
 
             if !res.body.is_empty() && res.body[0].len() > 1 {
-                return Err(ParseError::new("{subarray} can contain only one column"));
+                return Err(ParseError::new(ParseErrorKind::SubarrayTooManyColumns {
+                    subarray: "{subarray}",
+                }));
             }
 
             Ok(ParseNode::Array(res))

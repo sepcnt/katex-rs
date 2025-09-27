@@ -13,7 +13,7 @@ use crate::dom_tree::HtmlDomNode;
 use crate::mathml_tree::MathDomNode;
 use crate::options::Options;
 use crate::parser::parse_node::{AnyParseNode, NodeType, ParseNodeHtmlMathMl};
-use crate::types::ParseError;
+use crate::types::{ParseError, ParseErrorKind};
 
 /// Registers the htmlmathml function in the KaTeX context
 pub fn define_htmlmathml(ctx: &mut crate::KatexContext) {
@@ -45,7 +45,9 @@ fn html_builder(
     ctx: &crate::KatexContext,
 ) -> Result<HtmlDomNode, ParseError> {
     let AnyParseNode::HtmlMathMl(group) = node else {
-        return Err(ParseError::new("Expected HtmlMathMl node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::HtmlMathMl,
+        }));
     };
 
     let elements = build_html::build_expression(
@@ -66,7 +68,9 @@ fn mathml_builder(
     ctx: &crate::KatexContext,
 ) -> Result<MathDomNode, ParseError> {
     let AnyParseNode::HtmlMathMl(group) = node else {
-        return Err(ParseError::new("Expected HtmlMathMl node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::HtmlMathMl,
+        }));
     };
 
     build_mathml::build_expression_row(ctx, &group.mathml, options, None)

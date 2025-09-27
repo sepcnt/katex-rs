@@ -12,7 +12,7 @@ use crate::parser::parse_node::{AnyParseNode, NodeType, ParseNode, ParseNodeEncl
 use crate::spacing_data::Measurement;
 use crate::stretchy::enclose_span;
 use crate::svg_geometry::phase_path;
-use crate::types::{ArgType, CssProperty, Mode, ParseError};
+use crate::types::{ArgType, CssProperty, Mode, ParseError, ParseErrorKind};
 use crate::units::make_em as units_make_em;
 use crate::{KatexContext, build_common};
 use crate::{build_html, build_mathml};
@@ -32,7 +32,11 @@ pub fn define_enclose(ctx: &mut KatexContext) {
         handler: Some(|context: FunctionContext, args, _opt_args| {
             let color = match &args[0] {
                 AnyParseNode::ColorToken(color_token) => color_token.color.clone(),
-                _ => return Err(ParseError::new("First argument must be a color token")),
+                _ => {
+                    return Err(ParseError::new(ParseErrorKind::ExpectedColorToken {
+                        argument: "first argument",
+                    }));
+                }
             };
 
             let body = args[1].clone();
@@ -67,12 +71,20 @@ pub fn define_enclose(ctx: &mut KatexContext) {
         handler: Some(|context: FunctionContext, args, _opt_args| {
             let border_color = match &args[0] {
                 AnyParseNode::ColorToken(color_token) => color_token.color.clone(),
-                _ => return Err(ParseError::new("First argument must be a color token")),
+                _ => {
+                    return Err(ParseError::new(ParseErrorKind::ExpectedColorToken {
+                        argument: "first argument",
+                    }));
+                }
             };
 
             let background_color = match &args[1] {
                 AnyParseNode::ColorToken(color_token) => color_token.color.clone(),
-                _ => return Err(ParseError::new("Second argument must be a color token")),
+                _ => {
+                    return Err(ParseError::new(ParseErrorKind::ExpectedColorToken {
+                        argument: "second argument",
+                    }));
+                }
             };
 
             let body = args[2].clone();
@@ -127,7 +139,7 @@ pub fn define_enclose(ctx: &mut KatexContext) {
         handler: Some(|context: FunctionContext, args, _opt_args| {
             if args.len() != 1 {
                 return Err(ParseError::new(
-                    "Cancel functions require exactly 1 argument",
+                    ParseErrorKind::CancelFunctionSingleArgument,
                 ));
             }
 
@@ -180,7 +192,9 @@ fn html_builder(
     ctx: &KatexContext,
 ) -> Result<HtmlDomNode, ParseError> {
     let ParseNode::Enclose(enclose_node) = node else {
-        return Err(ParseError::new("Expected Enclose node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Enclose,
+        }));
     };
 
     // Build the inner content
@@ -461,7 +475,9 @@ fn mathml_builder(
     ctx: &KatexContext,
 ) -> Result<MathDomNode, ParseError> {
     let ParseNode::Enclose(enclose_node) = node else {
-        return Err(ParseError::new("Expected Enclose node"));
+        return Err(ParseError::new(ParseErrorKind::ExpectedNode {
+            node: NodeType::Enclose,
+        }));
     };
 
     let node_type = if enclose_node.label.contains("colorbox") {
